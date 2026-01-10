@@ -1,0 +1,9 @@
+[package]
+name = "aion-program"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+small_derive_deref = "0.1.4"
+
+aion-state = { path = "../aion-state" }
