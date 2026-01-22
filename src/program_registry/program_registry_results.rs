@@ -1,6 +1,7 @@
-use crate::program_registry::{injected::{Injected, injection_error::InjectionError}, program::program_results::ProgramResolveResult};
+use crate::prelude::{InjectionError, Injected};
 
 pub enum ProgramRegistryResolveResult<'a, T: Injected> {
-    Found(ProgramResolveResult<'a, T>),
-    AccessFailure
+    Found(Result<T::Item<'a>, InjectionError>),
+    AccessFailure,
+    ExpectsGlobalProgram
 }

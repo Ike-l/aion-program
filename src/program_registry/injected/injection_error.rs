@@ -1,3 +1,5 @@
 pub enum InjectionError {
-    Resolving
+    Casting,
+    RequiresResource,
+    InputMismatch
 }

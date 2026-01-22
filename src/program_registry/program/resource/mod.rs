@@ -1,32 +1,40 @@
-use std::{any::Any, cell::UnsafeCell, fmt::Debug};
+use std::{any::Any, fmt::Debug};
 
-pub mod stored_resource;
 pub mod resolved_resource;
 pub mod casted_resource;
+pub mod stored_resource;
 
 pub struct Resource {
-    inner: UnsafeCell<Box<dyn Any>>,
+    inner: Box<dyn Any>,
+}
+
+impl Resource {
+    pub fn new<T: 'static>(value: T) -> Self {
+        Self {
+            inner: Box::new(value)
+        }
+    }
 }
 
 impl Resource {
     pub unsafe fn as_ref<T: 'static>(&self) -> Option<&T> {
-        let boxed = unsafe { & *self.inner.get() };
-        boxed.downcast_ref()
+        self.inner.downcast_ref()
     }
 
     pub unsafe fn as_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        let boxed = unsafe { &mut *self.inner.get() };
-        boxed.downcast_mut()
+        self.inner.downcast_mut()
     }
 
-    pub fn is<T: 'static>(&self) -> bool {
-        let boxed = unsafe { & *self.inner.get() };
-        boxed.is::<T>()
+    pub unsafe fn is<T: 'static>(&self) -> bool {
+        self.inner.is::<T>()
     }
 
-    pub fn clone<T: 'static + Clone>(&self) -> Option<T> {
-        Some(unsafe { self.as_ref::<T>() }?.clone())
-    } 
+    pub unsafe fn as_box<T: 'static>(self) -> Result<Box<T>, Self> {
+        match self.inner.downcast() {
+            Ok(boxed) => Ok(boxed),
+            Err(inner) => Err(Self { inner }),
+        }
+    }
 }
 
 impl Debug for Resource {

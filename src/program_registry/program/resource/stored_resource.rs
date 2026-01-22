@@ -1,6 +1,17 @@
-use super::Resource;
+use std::cell::UnsafeCell;
 
-#[derive(Debug)]
+use crate::prelude::Resource;
+
 pub struct StoredResource {
-    resource: Resource
+    resource: UnsafeCell<Resource>
+}
+
+impl StoredResource {
+    pub unsafe fn as_ref(&self) -> &Resource {
+        unsafe { &*self.resource.get() }
+    }
+
+    pub unsafe fn as_mut(&self) -> &mut Resource {
+        unsafe { &mut *self.resource.get() }
+    }
 }
