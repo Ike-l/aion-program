@@ -1,4 +1,4 @@
-use crate::prelude::{Access, ProgramId, ResourceId, ValuePassword, UserId, UserPassword};
+use crate::prelude::{ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
 
 pub struct FinalisedAccess {
     pub program_id: ProgramId,
@@ -7,5 +7,5 @@ pub struct FinalisedAccess {
 
     pub resource_id: ResourceId,
     pub resource_password: Option<ValuePassword>,
-    pub access: Access,
+    pub resource_access: ResourceAccess,
 }

@@ -1,6 +1,6 @@
 use aion_state::prelude::Registry;
 
-use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, RegistryStorage, ReservationStorage, WhitelistStorage};
+use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, RegistryStorage, ReservationStorage, ResourceAccess, ResourceId, StoredResource, WhitelistStorage};
 
 pub mod resource_id;
 pub mod stored_resource;

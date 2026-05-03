@@ -33,7 +33,19 @@ pub mod prelude {
             stored_program::{
                 StoredProgram,
                 program::{
-                    Program
+                    Program,
+                    resource_access::{
+                        ResourceAccess
+                    },
+                    resource_id::{
+                        ResourceId
+                    },
+                    stored_resource::{
+                        StoredResource,
+                        resource::{
+                            Resource
+                        }
+                    }
                 }
             }
         },

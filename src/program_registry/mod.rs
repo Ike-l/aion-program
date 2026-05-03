@@ -24,7 +24,7 @@ pub struct ProgramRegistry {
 impl ProgramRegistry {
     pub fn resolve<T: Injection>(&self, prompted_program_accesses: Vec<PromptedProgramAccess>) {
 
-        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id, false)).collect();
+        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id.clone(), false)).collect();
 
         let submitted_accesses = T::submit_access(access_builders);
     
@@ -33,7 +33,7 @@ impl ProgramRegistry {
             user_details, 
             resource_id, 
             resource_password, 
-            access 
+            resource_access 
         } in submitted_accesses {
             // self.programs.acquire_access()
         }   
