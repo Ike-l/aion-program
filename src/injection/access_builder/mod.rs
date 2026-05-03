@@ -20,12 +20,12 @@ impl AccessBuilder {
             false => self.program_id,
         };
 
-        FinalisedAccess::new(
+        FinalisedAccess {
             program_id, 
-            self.user_details, 
-            self.resource_id, 
-            self.resource_password, 
-            self.access
-        )
+            user_details: self.user_details, 
+            resource_id: self.resource_id, 
+            resource_password: self.resource_password, 
+            access: self.access
+        }
     }
 }
