@@ -20,15 +20,18 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
-            program_id::{
-                ProgramId
-            },
+            // program_id::{
+            //     ProgramId
+            // },
             prompted_accesses::{
                 PromptedAccesses
             },
-            stored_program::{
+            program_storage::{
+                ProgramStorage
+            },
+            /*stored_program::{
                 StoredProgram,
-                program::{
+                /*program::{
                     Program,
                     storage::{
                         Storage,
@@ -81,8 +84,8 @@ pub mod prelude {
                             ControlStorage
                         }
                     }
-                }
-            }
+                }*/
+            }*/
         }
     };
 }
