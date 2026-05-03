@@ -1,4 +1,4 @@
-use crate::prelude::{DerivedResource, FinalisedAccess, AccessBuilder, ResolveResourceError};
+use crate::prelude::{AccessBuilder, FinalisedAccess, ResolveResourceError, DerivedResult};
 
 pub mod access_builder;
 pub mod finalised_access;
@@ -10,5 +10,5 @@ pub trait Injection {
     type Item<'new>;
 
     fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Vec<FinalisedAccess>;
-    fn resolve_access<'new>(derived_resources: Vec<DerivedResource>) -> Result<Self::Item<'new>, ResolveResourceError>;
+    fn resolve_access<'new>(derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError>;
 }
