@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 tracing = "0.1.44"
+rand = { version = "0.10.0" }
 
 small_derive_deref = "0.1.4"
 

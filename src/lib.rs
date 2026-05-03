@@ -65,6 +65,9 @@ pub mod prelude {
                     },
                     whitelist_storage::{
                         WhitelistStorage
+                    },
+                    blacklist_storage::{
+                        BlacklistStorage
                     }
                 }
             }

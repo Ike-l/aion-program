@@ -26,7 +26,7 @@ impl StorageTrait for Storage {
     type OS = CredentialStorage;
 
     type WS = WhitelistStorage;
-    type BS;
+    type BS = BlacklistStorage;
 
     type CS;
 }
