@@ -21,8 +21,8 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
-            prompted_accesses::{
-                PromptedAccesses
+            prompted_program_access::{
+                PromptedProgramAccess
             },
             program_id::{
                 ProgramId
