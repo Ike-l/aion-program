@@ -9,4 +9,4 @@ rand = { version = "0.10.0" }
 
 small_derive_deref = "0.1.4"
 
-aion-state = { path = "../aion-state", features = ["default-implementation"] }
+aion-state = { path = "../aion-state" }
