@@ -9,13 +9,13 @@ pub struct StoredProgram {
 }
 
 impl StoredProgram {
-    pub fn new(program: Program) -> Self {
+    pub fn new(program: Arc<Program>) -> Self {
         Self {
-            program: Arc::new(program)
+            program
         }
     }
 
-    pub fn get(&self) -> &Program {
+    pub fn get(&self) -> &Arc<Program> {
         &self.program
     }
 }
