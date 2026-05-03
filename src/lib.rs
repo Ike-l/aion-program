@@ -23,6 +23,9 @@ pub mod prelude {
             program_id::{
                 ProgramId
             },
+            prompted_accesses::{
+                PromptedAccesses
+            },
             stored_program::{
                 StoredProgram,
                 program::{

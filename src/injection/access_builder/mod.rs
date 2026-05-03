@@ -1,16 +1,16 @@
 use crate::prelude::{Access, FinalisedAccess, ProgramId, ResourceId, ResourcePassword, UserId, UserPassword};
 
 pub struct AccessBuilder {
-    program_id: ProgramId,
-    global_program_id: ProgramId,
+    pub program_id: ProgramId,
+    pub global_program_id: ProgramId,
 
-    user_details: Option<(UserId, UserPassword)>,
+    pub user_details: Option<(UserId, UserPassword)>,
 
-    resource_id: ResourceId,
-    resource_password: Option<ResourcePassword>,
-    access: Access,
+    pub resource_id: ResourceId,
+    pub resource_password: Option<ResourcePassword>,
+    pub access: Access,
 
-    use_global_program_id: bool,
+    pub use_global_program_id: bool,
 }
 
 impl AccessBuilder {
