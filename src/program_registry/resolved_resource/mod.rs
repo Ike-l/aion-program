@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::prelude::{AccessResult, Program, Resource, ResourceAccess, ResourceId};
+use crate::prelude::{AccessResult, CastedResource, Program, Resource, ResourceAccess, ResourceId};
+
+pub mod casted_resource;
 
 pub struct ResolvedResource<'a> {
     access_result: AccessResult<'a, Resource>,
@@ -25,7 +27,7 @@ impl<'a> ResolvedResource<'a> {
         }
     }
 
-    pub fn cast<Y: 'static>(self) -> Result<CastedResource<'a, Y> Self> {
+    pub fn cast<Y: 'static>(self) -> Result<CastedResource<'a, Y>, Self> {
         let Self {
             access_result,
             source,

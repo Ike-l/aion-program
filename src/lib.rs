@@ -16,7 +16,7 @@ pub mod prelude {
                 ResolveResourceError
             },
             derived_resource::{
-                DerivedResource
+                DerivedResource,
             },
         },
         program_registry::{
@@ -28,7 +28,10 @@ pub mod prelude {
                 DerivedResult
             },
             resolved_resource::{
-                ResolvedResource
+                ResolvedResource,
+                casted_resource::{
+                    CastedResource
+                }
             },
             program_id::{
                 ProgramId
