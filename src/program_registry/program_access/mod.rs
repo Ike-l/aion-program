@@ -1,30 +1,28 @@
 use tracing::{Level, event};
 
-use crate::prelude::{AccessResult, BorrowType, StoredProgram};
+use crate::prelude::{AccessResult, BorrowType, Program, StoredProgram};
 
 #[derive(Debug, PartialEq)]
-pub enum Access {
+pub enum ProgramAccess {
     Shared(usize),
-    Unique,
     Replace,
 }
 
-impl Access {
+impl ProgramAccess {
     fn to_borrow_type(&self) -> BorrowType {
         match self {
-            Access::Shared(0) |
-            Access::Replace => BorrowType::Instant,
-            Access::Shared(_) |
-            Access::Unique => BorrowType::Held,
+            ProgramAccess::Shared(0) |
+            ProgramAccess::Replace => BorrowType::Instant,
+            ProgramAccess::Shared(_) => BorrowType::Held
         }
     }
 }
 
-impl aion_state::prelude::Accessor for Access {
+impl aion_state::prelude::Accessor for ProgramAccess {
     type StoredValue = StoredProgram;
     type Value = Program;
 
-    type AccessResult<'a> = AccessResult<'a, Self::Program>;
+    type AccessResult<'a> = AccessResult<'a, Self::Value>;
 
     fn accepts_incoming(&self, incoming_access: &Self) -> bool {
         event!(Level::TRACE, "Access Accepts Incoming");
@@ -32,11 +30,11 @@ impl aion_state::prelude::Accessor for Access {
         match (self.to_borrow_type(), incoming_access.to_borrow_type()) {
             (BorrowType::Held, BorrowType::Held) => {
                 match (self, incoming_access) {
-                    (Access::Shared(_), Access::Shared(_)) => true,
+                    (ProgramAccess::Shared(_), ProgramAccess::Shared(_)) => true,
                     _ => false
                 }
             },
-            (BorrowType::Held, BorrowType::Instant) => *incoming_access != Access::Replace,
+            (BorrowType::Held, BorrowType::Instant) => *incoming_access != ProgramAccess::Replace,
             (BorrowType::Instant, _) => true,
         }
     }
@@ -44,13 +42,13 @@ impl aion_state::prelude::Accessor for Access {
     fn can_insert_resource(&self) -> bool {
         event!(Level::TRACE, "Access Can Insert Resource");
 
-        *self == Access::Replace
+        *self == ProgramAccess::Replace
     }
 
     fn can_remove_resource(&self) -> bool {
         event!(Level::TRACE, "Access Can Remove Resource");
 
-        *self == Access::Replace
+        *self == ProgramAccess::Replace
     }
 
     fn acquire<'a>(
@@ -60,9 +58,8 @@ impl aion_state::prelude::Accessor for Access {
         event!(Level::TRACE, "Access Acquire");
 
         match self {
-            Access::Shared(_) => AccessResult::Shared(stored_value.get()),
-            Access::Unique => AccessResult::Unique(stored_value.get_mut()),
-            Access::Replace => unreachable!(),
+            ProgramAccess::Shared(_) => AccessResult::Shared(stored_value.get()),
+            ProgramAccess::Replace => unreachable!(),
         }
     }
 
@@ -80,7 +77,7 @@ impl aion_state::prelude::Accessor for Access {
         assert_eq!(self.to_borrow_type(), BorrowType::Held);
 
         if incoming_access.to_borrow_type() == BorrowType::Instant {
-            assert_ne!(incoming_access, Access::Replace, "Tried replacing a held borrow");
+            assert_ne!(incoming_access, ProgramAccess::Replace, "Tried replacing a held borrow");
 
             return;
         }
@@ -90,7 +87,7 @@ impl aion_state::prelude::Accessor for Access {
         match (self.to_borrow_type(), incoming_access.to_borrow_type()) {
             (BorrowType::Held, BorrowType::Held) => {
                 match (self, incoming_access) {
-                    (Access::Shared(n), Access::Shared(m)) => *n += m,
+                    (ProgramAccess::Shared(n), ProgramAccess::Shared(m)) => *n += m,
                     _ => panic!("Tried merging unique held accesses")
                 }
             },
@@ -105,7 +102,7 @@ impl aion_state::prelude::Accessor for Access {
         event!(Level::TRACE, "Access Release");
 
         match (self, other) {
-            (Access::Shared(n), Access::Shared(m)) => *n -= m,     
+            (ProgramAccess::Shared(n), ProgramAccess::Shared(m)) => *n -= m,     
             _ => ()
         }  
     }

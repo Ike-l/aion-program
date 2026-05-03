@@ -1,6 +1,6 @@
 use aion_state::prelude::Registry;
 
-use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedAccesses, PromptedProgramAccess, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
+use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedProgramAccess, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
 
 pub mod prompted_program_access;
 
@@ -35,7 +35,7 @@ impl ProgramRegistry {
             resource_password, 
             access 
         } in submitted_accesses {
-            self.programs.acquire_access()
+            // self.programs.acquire_access()
         }   
     }
 }
