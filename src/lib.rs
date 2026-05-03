@@ -24,6 +24,9 @@ pub mod prelude {
             prompted_program_access::{
                 PromptedProgramAccess
             },
+            derived_result::{
+                DerivedResult
+            },
             resolved_resource::{
                 ResolvedResource
             },
