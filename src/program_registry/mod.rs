@@ -59,7 +59,7 @@ impl ProgramRegistry {
                 });
 
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
-                    return DerivedResult::Complete(ResolvedResource::new(
+                    DerivedResult::Complete(ResolvedResource::new(
                         access_result,
                         Arc::clone(program),
                         resource_access,

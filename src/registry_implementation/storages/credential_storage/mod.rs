@@ -8,12 +8,6 @@ pub struct CredentialStorage {
     inner: HashMap<UserId, UserPassword>
 }
 
-impl Default for CredentialStorage {
-    fn default() -> Self {
-        Self { inner: Default::default() }
-    }
-}
-
 impl aion_state::prelude::CredentialStorage for CredentialStorage {
     type Id = UserId;
     type Password = UserPassword;

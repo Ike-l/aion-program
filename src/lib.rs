@@ -1,3 +1,7 @@
+#![allow(clippy::match_like_matches_macro)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::single_match)]
+
 pub mod injection;
 pub mod program_registry;
 pub mod registry_implementation;
