@@ -40,6 +40,9 @@ pub mod prelude {
                 },
                 user_id::{
                     UserId
+                },
+                user_password::{
+                    UserPassword
                 }
             }
         }
