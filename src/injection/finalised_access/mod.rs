@@ -2,6 +2,7 @@ use crate::prelude::{ProgramId, ResourceAccess, ResourceId, UserId, UserPassword
 
 pub struct FinalisedAccess {
     pub program_id: ProgramId,
+    pub program_password: Option<ValuePassword>,
 
     pub user_details: Option<(UserId, UserPassword)>,
 

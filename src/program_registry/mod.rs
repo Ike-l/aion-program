@@ -1,4 +1,4 @@
-use aion_state::prelude::Registry;
+use aion_state::prelude::{Registry, RegistryAcquireAccess};
 
 use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedProgramAccess, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
 
@@ -30,12 +30,22 @@ impl ProgramRegistry {
     
         for FinalisedAccess { 
             program_id, 
+            program_password,
             user_details, 
             resource_id, 
             resource_password, 
             resource_access 
         } in submitted_accesses {
-            // self.programs.acquire_access()
+            let user_details = user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
+
+            let result = self.programs.acquire_access(RegistryAcquireAccess {
+                user_details,
+                resource_id: program_id,
+                access: ProgramAccess::Shared(1),
+                password: program_password.as_ref(),
+            });
+
+            
         }   
     }
 }
