@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use aion_state::prelude::RegistryReleaseAccess;
+
 use crate::prelude::{AccessResult, Program, ResourceAccess, ResourceId};
 
 pub struct CastedResource<'a, T> {
@@ -36,10 +38,9 @@ impl<'a, T> CastedResource<'a, T> {
 
 impl<'a, T> Drop for CastedResource<'a, T> {
     fn drop(&mut self) {
-        unsafe { self.source.deaccess(
-            &self.access_resource_id, 
-            &self.access, 
-            self.access_key_id.as_ref()
-        ) };
+        unsafe { self.source.release_access(RegistryReleaseAccess {
+            resource_id: &self.resource_id,
+            access: &self.resource_access
+        } ) };
     }
 }
