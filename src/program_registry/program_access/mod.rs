@@ -4,7 +4,7 @@ use tracing::{Level, event};
 
 use crate::prelude::{AccessResult, BorrowType, Program, StoredProgram};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ProgramAccess {
     Shared(usize),
     Replace,

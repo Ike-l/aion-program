@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult};
+use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
 use crate::prelude::{AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
@@ -41,10 +41,12 @@ impl ProgramRegistry {
         }| {
             let user_details = user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
 
+            let program_access = ProgramAccess::Shared(1);
+
             let program_access_result = self.programs.acquire_access(RegistryAcquireAccess {
                 user_details,
-                resource_id: program_id,
-                access: ProgramAccess::Shared(1),
+                resource_id: program_id.clone(),
+                access: program_access.clone(),
                 password: program_password.as_ref(),
             });  
 
@@ -58,6 +60,7 @@ impl ProgramRegistry {
                     password: resource_password.as_ref()
                 });
 
+                
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
                     DerivedResult::Complete(ResolvedResource::new(
                         access_result,
@@ -66,14 +69,43 @@ impl ProgramRegistry {
                         resource_id,
                     ))
                 } else {
+                    assert!(
+                        matches!(
+                            // Safety
+                            // We do not use program any further
+                            // Neither is program saved anywhere (like Arc clone)
+                            unsafe { 
+                                self.programs.release_access(RegistryReleaseAccess {
+                                    resource_id: &program_id,
+                                    access: &program_access
+                                }) 
+                            }, 
+                            RegistryReleaseAccessResult::Ok
+                        )
+                    );
+
                     DerivedResult::ResourceAccessNotFound(resource_access_result)
                 }
             } else {
+                assert!(
+                    matches!(
+                        // Safety
+                        // We do not use program any further
+                        // Neither is program saved anywhere (like Arc clone)
+                        unsafe { 
+                            self.programs.release_access(RegistryReleaseAccess {
+                                resource_id: &program_id,
+                                access: &program_access
+                            }) 
+                        }, 
+                        RegistryReleaseAccessResult::Ok
+                    )
+                );
+
                 DerivedResult::ProgramAccessNotFound(program_access_result)
             }
         }).collect::<Vec<_>>();
 
-        todo!("deaccess all programs");
         let resolve_result = T::resolve_access(derived_results);
         match resolve_result {
             Ok(item) => Ok(item),

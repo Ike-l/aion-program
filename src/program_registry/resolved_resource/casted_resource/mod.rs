@@ -8,6 +8,7 @@ pub struct CastedResource<'a, T> {
     access_result: AccessResult<'a, T>,
     
     source: Arc<Program>,
+
     resource_access: ResourceAccess,
     resource_id: ResourceId,
 }
@@ -38,6 +39,8 @@ impl<'a, T> CastedResource<'a, T> {
 
 impl<'a, T> Drop for CastedResource<'a, T> {
     fn drop(&mut self) {
+        todo!("release access for program");
+
         unsafe { self.source.release_access(RegistryReleaseAccess {
             resource_id: &self.resource_id,
             access: &self.resource_access
