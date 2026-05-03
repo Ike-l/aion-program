@@ -2,7 +2,7 @@ use tracing::{Level, event};
 
 use crate::prelude::{AccessResult, BorrowType, Resource, StoredResource};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ResourceAccess {
     Shared(usize),
     Unique,

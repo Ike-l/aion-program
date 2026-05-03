@@ -1,0 +1,27 @@
+use std::sync::Arc;
+
+use crate::prelude::{AccessResult, Program, Resource, ResourceAccess, ResourceId};
+
+pub struct ResolvedResource<'a> {
+    access_result: AccessResult<'a, Resource>,
+    
+    source: Arc<Program>,
+    resource_access: ResourceAccess,
+    resource_id: ResourceId,
+}
+
+impl<'a> ResolvedResource<'a> {
+    pub fn new(
+        access_result: AccessResult<'a, Resource>,
+        source: Arc<Program>,
+        resource_access: ResourceAccess,
+        resource_id: ResourceId,
+    ) -> Self {
+        Self {
+            access_result,
+            source,
+            resource_access,
+            resource_id
+        }
+    }
+}
