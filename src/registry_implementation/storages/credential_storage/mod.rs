@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use tracing::{Level, event};
 
+use crate::prelude::{UserId, UserPassword};
+
 pub struct CredentialStorage {
     inner: HashMap<UserId, UserPassword>
 }

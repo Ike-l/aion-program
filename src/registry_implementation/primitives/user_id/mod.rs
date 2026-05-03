@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash)]
 pub enum UserId {
     Label(String),
     TypeId(TypeId)

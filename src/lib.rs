@@ -32,6 +32,12 @@ pub mod prelude {
                 },
                 blacklist_storage::{
                     BlacklistStorage,
+                },
+                control_storage::{
+                    ControlStorage
+                },
+                credential_storage::{
+                    CredentialStorage
                 }
             },
             primitives::{
