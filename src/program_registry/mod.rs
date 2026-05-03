@@ -73,12 +73,12 @@ impl ProgramRegistry {
             }
         }).collect::<Vec<_>>();
 
-        // deaccess all programs
+        todo!("deaccess all programs");
         let resolve_result = T::resolve_access(derived_results);
         match resolve_result {
             Ok(item) => Ok(item),
             Err(err) => {
-                // deaccess all accessed resources
+                todo!("deaccess all accessed resources");
                 Err(err)
             },
         }
