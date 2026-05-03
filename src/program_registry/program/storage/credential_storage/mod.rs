@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use tracing::{Level, event};
 
-use crate::prelude::UserId;
+use crate::prelude::{UserId, UserPassword};
 
 pub mod user_password;
 
