@@ -1,5 +1,5 @@
-pub mod program;
 pub mod injection;
+pub mod program_registry;
 
 pub mod prelude {
     pub use super::{
@@ -18,31 +18,37 @@ pub mod prelude {
                 DerivedResource
             },
         },
-        program::{
-            Program,
-            storage::{
-                Storage,
-                registry_storage::{
-                    RegistryStorage,
-                    resource_id::{
-                        ResourceId
-                    },
-                    stored_resource::{
-                        StoredResource,
-                        resource::{
-                            Resource
-                        }
-                    },
-                },
-                access_storage::{
-                    AccessStorage,
-                    access::{
-                        Access,
-                        access_result::{
-                            AccessResult
+        program_registry::{
+            ProgramRegistry,
+            program_id::{
+                ProgramId
+            },
+            program::{
+                Program,
+                storage::{
+                    Storage,
+                    registry_storage::{
+                        RegistryStorage,
+                        resource_id::{
+                            ResourceId
                         },
-                        borrow_type::{
-                            BorrowType
+                        stored_resource::{
+                            StoredResource,
+                            resource::{
+                                Resource
+                            }
+                        },
+                    },
+                    access_storage::{
+                        AccessStorage,
+                        access::{
+                            Access,
+                            access_result::{
+                                AccessResult
+                            },
+                            borrow_type::{
+                                BorrowType
+                            }
                         }
                     }
                 }

@@ -1,3 +1,5 @@
+use crate::prelude::{Access, ProgramId, ResourceId};
+
 pub struct AccessBuilder {
     program_id: ProgramId,
     global_program_id: ProgramId,
