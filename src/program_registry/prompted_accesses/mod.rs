@@ -1,4 +1,4 @@
-use crate::prelude::{Access, AccessBuilder, ProgramId, ResourceId, ResourcePassword, UserId, UserPassword};
+use crate::prelude::{Access, AccessBuilder, ProgramId, ResourceId, ValuePassword, UserId, UserPassword};
 
 pub struct PromptedAccesses {
     pub program_id: ProgramId,
@@ -6,7 +6,7 @@ pub struct PromptedAccesses {
     pub user_details: Option<(UserId, UserPassword)>,
 
     pub resource_id: ResourceId,
-    pub resource_password: Option<ResourcePassword>,
+    pub resource_password: Option<ValuePassword>,
     pub access: Access,
 }
 

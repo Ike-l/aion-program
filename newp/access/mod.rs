@@ -1,6 +1,6 @@
 use tracing::{Level, event};
 
-use crate::prelude::{AccessResult, BorrowType, Resource, StoredResource};
+use crate::prelude::{AccessResult, BorrowType};
 
 pub mod access_result;
 pub mod borrow_type;
@@ -23,7 +23,7 @@ impl Access {
     }
 }
 
-impl aion_state::prelude::Accessor for Access {
+impl<StoredResource, Resource> aion_state::prelude::Accessor for Access {
     type StoredValue = StoredResource;
     type Value = Resource;
 

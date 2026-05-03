@@ -1,5 +1,6 @@
 pub mod injection;
 pub mod program_registry;
+pub mod registry_implementation;
 
 pub mod prelude {
     pub use super::{
@@ -20,72 +21,20 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
-            // program_id::{
-            //     ProgramId
-            // },
             prompted_accesses::{
                 PromptedAccesses
             },
-            program_storage::{
-                ProgramStorage
+        },
+        registry_implementation::{
+            access_storage::{
+                AccessStorage,
             },
-            /*stored_program::{
-                StoredProgram,
-                /*program::{
-                    Program,
-                    storage::{
-                        Storage,
-                        registry_storage::{
-                            RegistryStorage,
-                            resource_id::{
-                                ResourceId
-                            },
-                            stored_resource::{
-                                StoredResource,
-                                resource::{
-                                    Resource
-                                }
-                            },
-                        },
-                        access_storage::{
-                            AccessStorage,
-                            access::{
-                                Access,
-                                access_result::{
-                                    AccessResult
-                                },
-                                borrow_type::{
-                                    BorrowType
-                                }
-                            }
-                        },
-                        reserver_storage::{
-                            ReservationStorage,
-                            user_id::{
-                                UserId
-                            }
-                        },
-                        credential_storage::{
-                            CredentialStorage,
-                            user_password::{
-                                UserPassword
-                            }
-                        },
-                        whitelist_storage::{
-                            WhitelistStorage
-                        },
-                        blacklist_storage::{
-                            BlacklistStorage,
-                            resource_password::{
-                                ResourcePassword
-                            }
-                        },
-                        control_storage::{
-                            ControlStorage
-                        }
-                    }
-                }*/
-            }*/
+            blacklist_storage::{
+                BlacklistStorage,
+                value_password::{
+                    ValuePassword
+                }
+            }
         }
     };
 }

@@ -6,7 +6,8 @@ pub mod prompted_accesses;
 
 pub struct ProgramRegistry {
     global_program_id: ProgramId,
-    programs: Registry<ProgramStorage>
+    programs: Registry<
+    >
 }
 
 impl ProgramRegistry {

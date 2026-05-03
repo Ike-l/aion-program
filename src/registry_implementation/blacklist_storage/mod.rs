@@ -1,35 +1,37 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use rand::{Rng, rngs::ThreadRng};
 use tracing::{Level, event};
 
-use crate::prelude::{Access, ResourceId, ResourcePassword};
+use crate::prelude::ValuePassword;
 
-pub mod resource_password;
+pub mod value_password;
 
-pub struct BlacklistStorage {
-    inner: HashMap<ResourceId, Vec<(Access, ResourcePassword)>>,
+pub struct BlacklistStorage<ValueId, Access> {
+    inner: HashMap<ValueId, Vec<(Access, ValuePassword)>>,
     rng: ThreadRng
 }
 
-impl Default for BlacklistStorage {
+impl<ValueId, Access> Default for BlacklistStorage<ValueId, Access> {
     fn default() -> Self {
         Self { inner: Default::default(), rng: ThreadRng::default() }
     }
 }
 
-impl BlacklistStorage
-    where u64: Into<ResourcePassword>
-{
-    pub fn generate_password(&mut self) -> ResourcePassword {
+impl<ValueId, Access> BlacklistStorage<ValueId, Access> {
+    pub fn generate_password(&mut self) -> ValuePassword {
         self.rng.next_u64().into()
     }
 }
 
-impl aion_state::prelude::BlacklistStorage for BlacklistStorage {
-    type Id = ResourceId;
+impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage<ValueId, Access>
+    where 
+        ValueId: Eq + Hash,
+        Access: PartialEq,
+{
+    type Id = ValueId;
     type Access = Access;
-    type Password = ResourcePassword;
+    type Password = ValuePassword;
 
     fn check_access(
         &self,

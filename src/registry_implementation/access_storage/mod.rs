@@ -1,23 +1,19 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use tracing::{Level, event};
 
-use crate::prelude::{Access, ResourceId};
-
-pub mod access;
-
-pub struct AccessStorage {
-    inner: HashMap<ResourceId, Access>
+pub struct AccessStorage<ValueId, Access> {
+    inner: HashMap<ValueId, Access>
 }
 
-impl Default for AccessStorage {
+impl<ValueId, Access> Default for AccessStorage<ValueId, Access> {
     fn default() -> Self {
         Self { inner: Default::default() }
     }
 }
 
-impl aion_state::prelude::AccessStorage for AccessStorage {
-    type ValueId = ResourceId;
+impl<ValueId: Eq + Hash, Access> aion_state::prelude::AccessStorage for AccessStorage<ValueId, Access> {
+    type ValueId = ValueId;
     type Access = Access;
 
     fn get_mut(
