@@ -1,12 +1,23 @@
 use aion_state::prelude::Registry;
 
-use crate::prelude::{FinalisedAccess, Injection, ProgramId, PromptedAccesses};
+use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedAccesses, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
 
 pub mod prompted_accesses;
+
+pub mod program_id;
+pub mod stored_program;
+pub mod program_access;
 
 pub struct ProgramRegistry {
     global_program_id: ProgramId,
     programs: Registry<
+        RegistryStorage<ProgramId, StoredProgram>,
+        ReservationStorage<ProgramId, ProgramAccess>,
+        AccessStorage<ProgramId, ProgramAccess>,
+        CredentialStorage,
+        WhitelistStorage<ProgramId, ProgramAccess>,
+        BlacklistStorage<ProgramId, ProgramAccess>,
+        ControlStorage<ProgramId>
     >
 }
 

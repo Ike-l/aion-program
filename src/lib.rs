@@ -24,6 +24,15 @@ pub mod prelude {
             prompted_accesses::{
                 PromptedAccesses
             },
+            program_id::{
+                ProgramId
+            },
+            program_access::{
+                ProgramAccess
+            },
+            stored_program::{
+                StoredProgram
+            }
         },
         registry_implementation::{
             storages::{
