@@ -62,6 +62,9 @@ pub mod prelude {
                         user_password::{
                             UserPassword
                         }
+                    },
+                    whitelist_storage::{
+                        WhitelistStorage
                     }
                 }
             }
