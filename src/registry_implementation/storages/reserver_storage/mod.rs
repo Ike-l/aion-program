@@ -5,21 +5,19 @@ use tracing::{Level, event};
 
 use crate::prelude::{AccessStorage, UserId};
 
-pub mod user_id;
-
-pub struct ReservationStorage {
-    inner: HashMap<UserId, Accesses<AccessStorage>>
+pub struct ReservationStorage<ValueId, Access> {
+    inner: HashMap<UserId, Accesses<AccessStorage<ValueId, Access>>>
 }
 
-impl Default for ReservationStorage {
+impl<ValueId, Access> Default for ReservationStorage<ValueId, Access> {
     fn default() -> Self {
         Self { inner: Default::default() }
     }
 }
 
-impl aion_state::prelude::ReservationStorage for ReservationStorage {
+impl<ValueId, Access> aion_state::prelude::ReservationStorage for ReservationStorage<ValueId, Access> {
     type ReserverId = UserId;
-    type AccessStorage = AccessStorage;
+    type AccessStorage = AccessStorage<ValueId, Access>;
 
     fn get_mut(
         &mut self, 

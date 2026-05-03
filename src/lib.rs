@@ -38,6 +38,12 @@ pub mod prelude {
                 },
                 credential_storage::{
                     CredentialStorage
+                },
+                registry_storage::{
+                    RegistryStorage
+                },
+                reserver_storage::{
+                    ReservationStorage
                 }
             },
             primitives::{
