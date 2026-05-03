@@ -1,23 +1,18 @@
-use std::{collections::HashMap};
+use std::{collections::HashMap, hash::Hash};
 
 use tracing::{Level, event};
 
-use crate::prelude::{ResourceId, StoredResource};
-
-pub mod resource_id;
-pub mod stored_resource;
-
-pub struct RegistryStorage {
+pub struct RegistryStorage<ResourceId, StoredResource> {
     inner: HashMap<ResourceId, StoredResource>
 }
 
-impl Default for RegistryStorage {
+impl<ResourceId, StoragedResource> Default for RegistryStorage<ResourceId, StoragedResource> {
     fn default() -> Self {
         Self { inner: Default::default() }
     }
 }
 
-impl aion_state::prelude::RegistryStorage for RegistryStorage {
+impl<ResourceId: Eq + Hash, StoredResource> aion_state::prelude::RegistryStorage for RegistryStorage<ResourceId, StoredResource> {
     type ValueId = ResourceId;
     type Value = StoredResource;
 
