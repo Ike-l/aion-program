@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::prelude::{AccessResult, ProgramId, ProgramRegistry, ProgramReleaseAccess, ResourceAccess, ResourceId};
+use aion_state::prelude::{RegistryReleaseAccess, RegistryReleaseAccessResult};
+
+use crate::prelude::{AccessResult, Program, ProgramId, ProgramRegistry, ProgramReleaseAccess, ResourceAccess, ResourceId};
 
 pub struct CastedResource<'a, T> {
     access_result: AccessResult<'a, T>,
     
     program_registry: Arc<ProgramRegistry>,
+    program: Arc<Program>,
     program_id: ProgramId,
 
     resource_access: ResourceAccess,
@@ -16,6 +19,7 @@ impl<'a, T> CastedResource<'a, T> {
     pub fn new(
         access_result: AccessResult<'a, T>,
         program_registry: Arc<ProgramRegistry>,
+        program: Arc<Program>,
         program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
@@ -23,6 +27,7 @@ impl<'a, T> CastedResource<'a, T> {
         Self {
             access_result,
             program_registry,
+            program,
             program_id,
             resource_access,
             resource_id
@@ -40,12 +45,32 @@ impl<'a, T> CastedResource<'a, T> {
 
 impl<'a, T> Drop for CastedResource<'a, T> {
     fn drop(&mut self) {
-        unsafe {
-            self.program_registry.release_access(&ProgramReleaseAccess {
-                program_id: &self.program_id,
-                resource_id: &self.resource_id,
-                resource_access: &self.resource_access
-            })
-        };
+        assert!(
+            matches!(
+                // Safety
+                // We do not use the resources any further (in the drop)
+                unsafe {
+                    self.program.release_access(&RegistryReleaseAccess {
+                        resource_id: &self.resource_id,
+                        access: &self.resource_access
+                    })
+                },
+                RegistryReleaseAccessResult::Ok
+            )
+        );
+
+        assert!(
+            matches!(
+                // Safety
+                // We do not use program any further
+                // and we do not store it
+                unsafe {
+                    self.program_registry.release_access(&ProgramReleaseAccess {
+                        program_id: &self.program_id,
+                    })
+                },
+                RegistryReleaseAccessResult::Ok
+            )
+        );
     }
 }

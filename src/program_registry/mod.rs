@@ -60,14 +60,41 @@ impl ProgramRegistry {
                     access: resource_access.clone(),
                     password: resource_password.as_ref()
                 });
-
+                
+                if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
+                    DerivedResult::Complete(ResolvedResource::new(
+                        access_result,
+                        Arc::clone(self),
+                        Arc::clone(program),
+                        program_id,
+                        resource_access,
+                        resource_id,
+                    ))
+                } else {
+                    assert!(
+                        matches!(
+                            // Safety
+                            // We do not use program any further
+                            // and we do not store it
+                            unsafe { 
+                                self.programs.release_access(&RegistryReleaseAccess {
+                                    resource_id: &program_id,
+                                    access: &program_access
+                                }) 
+                            }, 
+                            RegistryReleaseAccessResult::Ok
+                        )
+                    );
+                    DerivedResult::ResourceAccessNotFound(resource_access_result)
+                }
+            } else {
                 assert!(
                     matches!(
                         // Safety
                         // We do not use program any further
                         // and we do not store it
                         unsafe { 
-                            self.programs.release_access(RegistryReleaseAccess {
+                            self.programs.release_access(&RegistryReleaseAccess {
                                 resource_id: &program_id,
                                 access: &program_access
                             }) 
@@ -75,19 +102,6 @@ impl ProgramRegistry {
                         RegistryReleaseAccessResult::Ok
                     )
                 );
-                
-                if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
-                    DerivedResult::Complete(ResolvedResource::new(
-                        access_result,
-                        Arc::clone(self),
-                        program_id,
-                        resource_access,
-                        resource_id,
-                    ))
-                } else {
-                    DerivedResult::ResourceAccessNotFound(resource_access_result)
-                }
-            } else {
                 DerivedResult::ProgramAccessNotFound(program_access_result)
             }
         }).collect::<Vec<_>>();
@@ -109,10 +123,11 @@ impl ProgramRegistry {
         &self,
         ProgramReleaseAccess {
             program_id,
-            resource_id,
-            resource_access
         }: &ProgramReleaseAccess
-    ) {
-
+    ) -> RegistryReleaseAccessResult {
+        unsafe { self.programs.release_access(&RegistryReleaseAccess {
+            resource_id: *program_id,
+            access: &ProgramAccess::Shared(1)
+        }) }
     }
 }
