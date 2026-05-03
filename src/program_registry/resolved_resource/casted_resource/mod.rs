@@ -24,4 +24,22 @@ impl<'a, T> CastedResource<'a, T> {
             resource_id
         }
     }
+
+    pub fn as_ref(&self) -> Option<&T> {
+        self.access_result.as_ref()
+    }
+
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        self.access_result.as_mut()
+    }
+}
+
+impl<'a, T> Drop for CastedResource<'a, T> {
+    fn drop(&mut self) {
+        unsafe { self.source.deaccess(
+            &self.access_resource_id, 
+            &self.access, 
+            self.access_key_id.as_ref()
+        ) };
+    }
 }
