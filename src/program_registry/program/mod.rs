@@ -1,6 +1,6 @@
 use aion_state::prelude::Registry;
 
-use crate::prelude::{Injection, Storage};
+use crate::prelude::Storage;
 
 pub mod storage;
 
@@ -9,7 +9,5 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn resolve<T: Injection>(&self) {
-        
-    }
+    
 }
