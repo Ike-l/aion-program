@@ -6,6 +6,8 @@ pub mod stored_program;
 pub mod program_id;
 pub mod prompted_accesses;
 
+pub mod program_storage;
+
 pub struct ProgramRegistry {
     global_program_id: ProgramId,
     programs: Registry<ProgramStorage>
