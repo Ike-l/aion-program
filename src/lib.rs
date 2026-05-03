@@ -44,6 +44,9 @@ pub mod prelude {
                 },
                 reserver_storage::{
                     ReservationStorage
+                },
+                whitelist_storage::{
+                    WhitelistStorage
                 }
             },
             primitives::{

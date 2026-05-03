@@ -1,21 +1,19 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use tracing::{Level, event};
 
-use crate::prelude::{Access, ResourceId};
-
-pub struct WhitelistStorage {
-    inner: HashMap<ResourceId, Vec<Access>>
+pub struct WhitelistStorage<ValueId, Access> {
+    inner: HashMap<ValueId, Vec<Access>>
 }
 
-impl Default for WhitelistStorage {
+impl<ValueId, Access> Default for WhitelistStorage<ValueId, Access> {
     fn default() -> Self {
         Self { inner: Default::default() }
     }
 }
 
-impl aion_state::prelude::WhitelistStorage for WhitelistStorage {
-    type Id = ResourceId;
+impl<ValueId: Eq + Hash, Access: PartialEq> aion_state::prelude::WhitelistStorage for WhitelistStorage<ValueId, Access> {
+    type Id = ValueId;
     type Access = Access;
 
     fn check_access(
