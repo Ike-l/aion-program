@@ -67,7 +67,10 @@ pub mod prelude {
                         WhitelistStorage
                     },
                     blacklist_storage::{
-                        BlacklistStorage
+                        BlacklistStorage,
+                        resource_password::{
+                            ResourcePassword
+                        }
                     }
                 }
             }

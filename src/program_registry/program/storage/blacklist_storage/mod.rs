@@ -1,9 +1,11 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use rand::{Rng, rngs::ThreadRng};
 use tracing::{Level, event};
 
-use crate::prelude::{Access, ResourceId};
+use crate::prelude::{Access, ResourceId, ResourcePassword};
+
+pub mod resource_password;
 
 pub struct BlacklistStorage {
     inner: HashMap<ResourceId, Vec<(Access, ResourcePassword)>>,
@@ -24,13 +26,7 @@ impl BlacklistStorage
     }
 }
 
-impl aion_state::prelude::BlacklistStorage for BlacklistStorage
-    // where
-    //     ResourceId: Eq + Hash,
-    //     Access: PartialEq,
-    //     Password: PartialEq + Clone,
-    //     u64: Into<Password>
-{
+impl aion_state::prelude::BlacklistStorage for BlacklistStorage {
     type Id = ResourceId;
     type Access = Access;
     type Password = ResourcePassword;
@@ -89,7 +85,7 @@ impl aion_state::prelude::BlacklistStorage for BlacklistStorage
     fn release_all<'a>(
         &mut self,
         mut ids: impl Iterator<Item = &'a Self::Id>
-    ) -> bool where <Self as crate::prelude::BlacklistStorage>::Id: 'a {
+    ) -> bool where <Self as aion_state::prelude::BlacklistStorage>::Id: 'a {
         event!(Level::TRACE, "Blacklist release all");
 
         !ids.any(|resource_id| !self.release(resource_id))
