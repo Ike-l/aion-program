@@ -5,8 +5,6 @@ use tracing::{Level, event};
 
 use crate::prelude::ValuePassword;
 
-pub mod value_password;
-
 pub struct BlacklistStorage<ValueId, Access> {
     inner: HashMap<ValueId, Vec<(Access, ValuePassword)>>,
     rng: ThreadRng

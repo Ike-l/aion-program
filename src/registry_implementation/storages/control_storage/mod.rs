@@ -1,22 +1,22 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use tracing::{Level, event};
 
-use crate::prelude::{ResourceId, UserId};
+use crate::prelude::UserId;
 
-pub struct ControlStorage {
-    inner: HashMap<ResourceId, UserId>
+pub struct ControlStorage<ValueId> {
+    inner: HashMap<ValueId, UserId>
 }
 
-impl Default for ControlStorage {
+impl<ValueId> Default for ControlStorage<ValueId> {
     fn default() -> Self {
         Self { inner: Default::default() }
     }
 }
 
-impl aion_state::prelude::ControlStorage for ControlStorage {
+impl<ValueId: Eq + Hash> aion_state::prelude::ControlStorage for ControlStorage<ValueId> {
     type Id = UserId;
-    type ResourceId = ResourceId;
+    type ResourceId = ValueId;
 
     fn check_owner(
         &self,

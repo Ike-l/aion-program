@@ -26,13 +26,20 @@ pub mod prelude {
             },
         },
         registry_implementation::{
-            access_storage::{
-                AccessStorage,
+            storages::{
+                access_storage::{
+                    AccessStorage,
+                },
+                blacklist_storage::{
+                    BlacklistStorage,
+                }
             },
-            blacklist_storage::{
-                BlacklistStorage,
+            primitives::{
                 value_password::{
                     ValuePassword
+                },
+                user_id::{
+                    UserId
                 }
             }
         }
