@@ -51,6 +51,12 @@ pub mod prelude {
                             }
                         }
                     }
+                    reserver_storage::{
+                        ReservationStorage,
+                        user_id::{
+                            UserId
+                        }
+                    }
                 }
             }
         }
