@@ -1,6 +1,6 @@
 use aion_state::prelude::StorageTrait;
 
-use crate::prelude::{Access, AccessStorage, RegistryStorage, ResourceId, StoredResource};
+use crate::prelude::{Access, AccessStorage, RegistryStorage, ReservationStorage, ResourceId, StoredResource, UserId};
 
 pub struct Storage;
 
@@ -16,8 +16,8 @@ impl StorageTrait for Storage {
     type Access = Access;
     type AS = AccessStorage;
 
-    type ReserverId;
-    type RS;
+    type ReserverId = UserId;
+    type RS = ReservationStorage;
 
     type OS;
 
