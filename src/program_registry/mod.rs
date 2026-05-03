@@ -1,6 +1,6 @@
 use aion_state::prelude::Registry;
 
-use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedAccesses, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
+use crate::prelude::{AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedAccesses, PromptedProgramAccess, RegistryStorage, ReservationStorage, StoredProgram, WhitelistStorage};
 
 pub mod prompted_program_access;
 
@@ -24,7 +24,7 @@ pub struct ProgramRegistry {
 impl ProgramRegistry {
     pub fn resolve<T: Injection>(&self, prompted_program_accesses: Vec<PromptedProgramAccess>) {
 
-        let access_builders = prompted_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id, false)).collect();
+        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id, false)).collect();
 
         let submitted_accesses = T::submit_access(access_builders);
     
@@ -35,7 +35,7 @@ impl ProgramRegistry {
             resource_password, 
             access 
         } in submitted_accesses {
-
+            self.programs.acquire_access()
         }   
     }
 }

@@ -31,7 +31,10 @@ pub mod prelude {
                 ProgramAccess
             },
             stored_program::{
-                StoredProgram
+                StoredProgram,
+                program::{
+                    Program
+                }
             }
         },
         registry_implementation::{
@@ -71,6 +74,9 @@ pub mod prelude {
                 access_result::{
                     AccessResult
                 },
+                borrow_type::{
+                    BorrowType
+                }
             }
         }
     };
