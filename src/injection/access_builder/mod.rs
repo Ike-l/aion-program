@@ -1,4 +1,4 @@
-use crate::prelude::{Access, ProgramId, ResourceId};
+use crate::prelude::{Access, ProgramId, ResourceId, UserId, UserPassword};
 
 pub struct AccessBuilder {
     program_id: ProgramId,
