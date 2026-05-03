@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
+use crate::prelude::{AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
 pub mod prompted_program_access;
 
@@ -11,6 +11,7 @@ pub mod stored_program;
 pub mod program_access;
 pub mod resolved_resource;
 pub mod derived_result;
+pub mod program_registry_input;
 
 pub struct ProgramRegistry {
     global_program_id: ProgramId,
@@ -26,7 +27,7 @@ pub struct ProgramRegistry {
 }
 
 impl ProgramRegistry {
-    pub fn resolve<T: Injection>(&self, prompted_program_accesses: Vec<PromptedProgramAccess>) -> Result<<T as Injection>::Item<'_>, ResolveResourceError> {
+    pub fn resolve<T: Injection>(self: &Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess>) -> Result<<T as Injection>::Item<'_>, ResolveResourceError> {
         let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id.clone(), false)).collect();
 
         let submitted_accesses = T::submit_access(access_builders);
@@ -60,38 +61,11 @@ impl ProgramRegistry {
                     password: resource_password.as_ref()
                 });
 
-                
-                if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
-                    DerivedResult::Complete(ResolvedResource::new(
-                        access_result,
-                        Arc::clone(program),
-                        resource_access,
-                        resource_id,
-                    ))
-                } else {
-                    assert!(
-                        matches!(
-                            // Safety
-                            // We do not use program any further
-                            // Neither is program saved anywhere (like Arc clone)
-                            unsafe { 
-                                self.programs.release_access(RegistryReleaseAccess {
-                                    resource_id: &program_id,
-                                    access: &program_access
-                                }) 
-                            }, 
-                            RegistryReleaseAccessResult::Ok
-                        )
-                    );
-
-                    DerivedResult::ResourceAccessNotFound(resource_access_result)
-                }
-            } else {
                 assert!(
                     matches!(
                         // Safety
                         // We do not use program any further
-                        // Neither is program saved anywhere (like Arc clone)
+                        // and we do not store it
                         unsafe { 
                             self.programs.release_access(RegistryReleaseAccess {
                                 resource_id: &program_id,
@@ -101,7 +75,19 @@ impl ProgramRegistry {
                         RegistryReleaseAccessResult::Ok
                     )
                 );
-
+                
+                if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
+                    DerivedResult::Complete(ResolvedResource::new(
+                        access_result,
+                        Arc::clone(self),
+                        program_id,
+                        resource_access,
+                        resource_id,
+                    ))
+                } else {
+                    DerivedResult::ResourceAccessNotFound(resource_access_result)
+                }
+            } else {
                 DerivedResult::ProgramAccessNotFound(program_access_result)
             }
         }).collect::<Vec<_>>();
@@ -114,5 +100,19 @@ impl ProgramRegistry {
                 Err(err)
             },
         }
+    }
+
+    /// # Safety
+    /// 
+    /// Ensure what is being released is actually released
+    pub(crate) unsafe fn release_access(
+        &self,
+        ProgramReleaseAccess {
+            program_id,
+            resource_id,
+            resource_access
+        }: &ProgramReleaseAccess
+    ) {
+
     }
 }

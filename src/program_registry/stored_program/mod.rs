@@ -1,21 +1,19 @@
-use std::sync::Arc;
-
 use crate::prelude::Program;
 
 pub mod program;
 
 pub struct StoredProgram {
-    program: Arc<Program>
+    program: Program
 }
 
 impl StoredProgram {
-    pub fn new(program: Arc<Program>) -> Self {
+    pub fn new(program: Program) -> Self {
         Self {
             program
         }
     }
 
-    pub fn get(&self) -> &Arc<Program> {
+    pub fn get(&self) -> &Program {
         &self.program
     }
 }

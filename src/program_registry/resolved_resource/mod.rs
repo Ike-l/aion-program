@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use crate::prelude::{AccessResult, CastedResource, Program, Resource, ResourceAccess, ResourceId};
+use crate::prelude::{AccessResult, CastedResource, ProgramId, ProgramRegistry, Resource, ResourceAccess, ResourceId};
 
 pub mod casted_resource;
 
 pub struct ResolvedResource<'a> {
     access_result: AccessResult<'a, Resource>,
     
-    source: Arc<Program>,
+    program_registry: Arc<ProgramRegistry>,
+    program_id: ProgramId,
     resource_access: ResourceAccess,
     resource_id: ResourceId,
 }
@@ -15,13 +16,15 @@ pub struct ResolvedResource<'a> {
 impl<'a> ResolvedResource<'a> {
     pub fn new(
         access_result: AccessResult<'a, Resource>,
-        source: Arc<Program>,
+        program_registry: Arc<ProgramRegistry>,
+        program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
     ) -> Self {
         Self {
             access_result,
-            source,
+            program_registry,
+            program_id,
             resource_access,
             resource_id
         }
@@ -30,14 +33,15 @@ impl<'a> ResolvedResource<'a> {
     pub fn cast<Y: 'static>(self) -> Result<CastedResource<'a, Y>, Self> {
         let Self {
             access_result,
-            source,
+            program_registry,
+            program_id,
             resource_access,
             resource_id
         } = self;
 
         match access_result.cast::<Y>() {
-            Ok(access_result) => Ok(CastedResource::new(access_result, source, resource_access, resource_id)),
-            Err(access_result) => Err(Self::new(access_result, source, resource_access, resource_id))
+            Ok(access_result) => Ok(CastedResource::new(access_result, program_registry, program_id, resource_access, resource_id)),
+            Err(access_result) => Err(Self::new(access_result, program_registry, program_id, resource_access, resource_id))
         }
     }
 }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use tracing::{Level, event};
 
 use crate::prelude::{AccessResult, BorrowType, Program, StoredProgram};
@@ -22,7 +20,7 @@ impl ProgramAccess {
 
 impl aion_state::prelude::Accessor for ProgramAccess {
     type StoredValue = StoredProgram;
-    type Value = Arc<Program>;
+    type Value = Program;
 
     type AccessResult<'a> = AccessResult<'a, Self::Value>;
 

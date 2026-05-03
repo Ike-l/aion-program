@@ -25,6 +25,9 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
+            program_registry_input::{
+                ProgramReleaseAccess
+            },
             prompted_program_access::{
                 PromptedProgramAccess
             },
