@@ -67,7 +67,10 @@ pub mod prelude {
                 },
                 user_password::{
                     UserPassword
-                }
+                },
+                access_result::{
+                    AccessResult
+                },
             }
         }
     };
