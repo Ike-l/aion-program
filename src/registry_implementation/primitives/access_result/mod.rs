@@ -8,8 +8,8 @@ pub enum AccessResult<'a, T> {
 }
 
 impl<'a> AccessResult<'a, Resource> {
-    pub unsafe fn cast<Y: 'static>(self) -> Result<AccessResult<'a, Y>, Self> {
-        unsafe { match self {
+    pub fn cast<Y: 'static>(self) -> Result<AccessResult<'a, Y>, Self> {
+        match self {
             AccessResult::Shared(inner) => inner.as_ref().map(AccessResult::Shared).ok_or(self),
             AccessResult::Unique(inner) => {
                 if inner.is::<Y>() {
@@ -20,7 +20,7 @@ impl<'a> AccessResult<'a, Resource> {
             },
             AccessResult::Taken(inner) => inner.as_box().map(AccessResult::Box).map_err(Self::Taken),
             AccessResult::Box(_) => panic!("Cannot Resolve AccessResult::Box")
-        } }
+        }
     }
 }
 

@@ -35,9 +35,7 @@ impl<'a> ResolvedResource<'a> {
             resource_id
         } = self;
 
-        match unsafe {
-            access_result.cast::<Y>()    
-        } {
+        match access_result.cast::<Y>() {
             Ok(access_result) => Ok(CastedResource::new(access_result, source, resource_access, resource_id)),
             Err(access_result) => Err(Self::new(access_result, source, resource_access, resource_id))
         }
