@@ -50,11 +50,17 @@ pub mod prelude {
                                 BorrowType
                             }
                         }
-                    }
+                    },
                     reserver_storage::{
                         ReservationStorage,
                         user_id::{
                             UserId
+                        }
+                    },
+                    credential_storage::{
+                        CredentialStorage,
+                        user_password::{
+                            UserPassword
                         }
                     }
                 }

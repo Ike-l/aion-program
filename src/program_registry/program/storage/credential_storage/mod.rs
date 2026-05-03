@@ -1,8 +1,10 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use tracing::{Level, event};
 
 use crate::prelude::UserId;
+
+pub mod user_password;
 
 pub struct CredentialStorage {
     inner: HashMap<UserId, UserPassword>
