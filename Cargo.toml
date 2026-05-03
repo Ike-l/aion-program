@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = "0.1.44"
+
 small_derive_deref = "0.1.4"
 
-aion-state = { path = "../aion-state" }
+aion-state = { path = "../aion-state", features = ["default-implementation"] }
