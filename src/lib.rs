@@ -71,6 +71,9 @@ pub mod prelude {
                         resource_password::{
                             ResourcePassword
                         }
+                    },
+                    control_storage::{
+                        ControlStorage
                     }
                 }
             }
