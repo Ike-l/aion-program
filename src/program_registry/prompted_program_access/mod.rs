@@ -1,7 +1,7 @@
 use crate::prelude::{AccessBuilder, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
 
-pub struct PromptedProgramAccess {
-    pub program_id: ProgramId,
+pub struct PromptedProgramAccess<'a> {
+    pub program_id: &'a ProgramId,
     pub program_password: Option<ValuePassword>,
 
     pub user_details: Option<(UserId, UserPassword)>,
@@ -13,8 +13,8 @@ pub struct PromptedProgramAccess {
     pub resource_access: ResourceAccess,
 }
 
-impl PromptedProgramAccess {
-    pub fn with(self, global_program_id: ProgramId, use_global_program_id: bool) -> AccessBuilder {
+impl<'a> PromptedProgramAccess<'a> {
+    pub fn with(self, global_program_id: &'a ProgramId, use_global_program_id: bool) -> AccessBuilder<'a> {
         AccessBuilder {
             program_id: self.program_id,
             program_password: self.program_password,

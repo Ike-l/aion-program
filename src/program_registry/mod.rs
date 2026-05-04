@@ -27,8 +27,8 @@ pub struct ProgramRegistry {
 }
 
 impl ProgramRegistry {
-    pub fn resolve<T: Injection>(self: &Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess>) -> Result<<T as Injection>::Item<'_>, ResolveResourceError> {
-        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id.clone(), false)).collect();
+    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess<'a>>) -> Result<<T as Injection>::Item<'a>, ResolveResourceError> {
+        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(&self.global_program_id, false)).collect();
 
         let submitted_accesses = T::submit_access(access_builders);
 

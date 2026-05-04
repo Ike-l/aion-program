@@ -9,7 +9,7 @@ pub struct ResolvedResource<'a> {
     
     program_registry: Arc<ProgramRegistry>,
     program: Arc<Program>,
-    program_id: ProgramId,
+    program_id: &'a ProgramId,
 
     resource_access: ResourceAccess,
     resource_id: ResourceId,
@@ -20,7 +20,7 @@ impl<'a> ResolvedResource<'a> {
         access_result: AccessResult<'a, Resource>,
         program_registry: Arc<ProgramRegistry>,
         program: Arc<Program>,
-        program_id: ProgramId,
+        program_id: &'a ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
     ) -> Self {

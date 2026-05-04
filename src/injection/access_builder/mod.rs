@@ -1,10 +1,10 @@
 use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
 
-pub struct AccessBuilder {
-    pub program_id: ProgramId,
+pub struct AccessBuilder<'a> {
+    pub program_id: &'a ProgramId,
     pub program_password: Option<ValuePassword>,
 
-    pub global_program_id: ProgramId,
+    pub global_program_id: &'a ProgramId,
 
     pub user_details: Option<(UserId, UserPassword)>,
 
@@ -15,8 +15,8 @@ pub struct AccessBuilder {
     pub use_global_program_id: bool,
 }
 
-impl AccessBuilder {
-    pub fn build(self) -> FinalisedAccess {
+impl<'a> AccessBuilder<'a> {
+    pub fn build(self) -> FinalisedAccess<'a> {
         let program_id = match self.use_global_program_id {
             true => self.global_program_id,
             false => self.program_id,
