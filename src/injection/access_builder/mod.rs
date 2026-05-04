@@ -7,7 +7,7 @@ pub struct AccessBuilder<'a> {
     pub global_program_id: &'a ProgramId,
     pub use_global_program_id: bool,
 
-    pub user_details: Option<(UserId, UserPassword)>,
+    pub user_details: Option<(&'a UserId, &'a UserPassword)>,
     pub resource_details: Option<(ResourceId, ResourceAccess, Option<ValuePassword>)>,   
 }
 

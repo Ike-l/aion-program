@@ -4,7 +4,7 @@ pub struct FinalisedAccess<'a> {
     pub program_id: &'a ProgramId,
     pub program_password: Option<&'a ValuePassword>,
 
-    pub user_details: Option<(UserId, UserPassword)>,
+    pub user_details: Option<(&'a UserId, &'a UserPassword)>,
 
     pub resource_id: ResourceId,
     pub resource_password: Option<ValuePassword>,

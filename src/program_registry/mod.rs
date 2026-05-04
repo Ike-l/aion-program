@@ -42,7 +42,7 @@ impl ProgramRegistry {
             resource_password, 
             resource_access 
         }| {
-            let user_details = user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
+            // let user_details = user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
 
             let program_access = ProgramAccess::Shared(1);
 
