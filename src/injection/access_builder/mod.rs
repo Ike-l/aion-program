@@ -8,7 +8,9 @@ pub struct AccessBuilder<'a> {
     pub use_global_program_id: bool,
 
     pub user_details: Option<(&'a UserId, &'a UserPassword)>,
-    pub resource_details: Option<(ResourceId, ResourceAccess, Option<ValuePassword>)>,   
+    pub resource_id: Option<ResourceId>, 
+    pub resource_access: Option<ResourceAccess>, 
+    pub resource_password: Option<ValuePassword>,   
 }
 
 impl<'a> AccessBuilder<'a> {
@@ -18,15 +20,15 @@ impl<'a> AccessBuilder<'a> {
             false => self.program_id,
         };
 
-        let Some((resource_id, resource_access, resource_password)) = self.resource_details else { return None };
-
+        let Some(resource_id) = self.resource_id else { return None };
+        let Some(resource_access) = self.resource_access else { return None };
 
         Some(FinalisedAccess {
             program_id, 
             program_password: self.program_password,
             user_details: self.user_details, 
             resource_id,
-            resource_password, 
+            resource_password: self.resource_password, 
             resource_access
         })
     }

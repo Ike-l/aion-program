@@ -5,7 +5,9 @@ pub struct PromptedProgramAccess<'a> {
     pub program_password: Option<&'a ValuePassword>,
 
     pub user_details: Option<(&'a UserId, &'a UserPassword)>,
-    pub resource_details: Option<(ResourceId, ResourceAccess, Option<ValuePassword>)>,    
+    pub resource_id: Option<ResourceId>, 
+    pub resource_access: Option<ResourceAccess>, 
+    pub resource_password: Option<ValuePassword>,     
 }
 
 impl<'a> PromptedProgramAccess<'a> {
@@ -18,7 +20,9 @@ impl<'a> PromptedProgramAccess<'a> {
             use_global_program_id,
 
             user_details: self.user_details,
-            resource_details: self.resource_details
+            resource_id: self.resource_id,
+            resource_access: self.resource_access,
+            resource_password: self.resource_password
         }
     }
 }
