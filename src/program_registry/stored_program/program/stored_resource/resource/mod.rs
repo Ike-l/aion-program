@@ -4,6 +4,9 @@ pub struct Resource {
     inner: Box<dyn Any>,
 }
 
+// unsafe impl Send for Resource {}
+// unsafe impl Sync for Resource {}
+
 impl Resource {
     pub fn new<T: 'static>(value: T) -> Self {
         Self {

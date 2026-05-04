@@ -26,9 +26,6 @@ pub struct ProgramRegistry {
     >
 }
 
-unsafe impl Send for ProgramRegistry {}
-unsafe impl Sync for ProgramRegistry {}
-
 impl ProgramRegistry {
     pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess<'a>>) -> Result<<T as Injection>::Item<'a>, ResolveResourceError> {
         let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(&self.global_program_id, false)).collect();
