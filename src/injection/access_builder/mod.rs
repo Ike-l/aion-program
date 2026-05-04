@@ -5,30 +5,29 @@ pub struct AccessBuilder<'a> {
     pub program_password: Option<ValuePassword>,
 
     pub global_program_id: &'a ProgramId,
+    pub use_global_program_id: bool,
 
     pub user_details: Option<(UserId, UserPassword)>,
-
-    pub resource_id: ResourceId,
-    pub resource_password: Option<ValuePassword>,
-    pub resource_access: ResourceAccess,
-
-    pub use_global_program_id: bool,
+    pub resource_details: Option<(ResourceId, ResourceAccess, Option<ValuePassword>)>,   
 }
 
 impl<'a> AccessBuilder<'a> {
-    pub fn build(self) -> FinalisedAccess<'a> {
+    pub fn build(self) -> Option<FinalisedAccess<'a>> {
         let program_id = match self.use_global_program_id {
             true => self.global_program_id,
             false => self.program_id,
         };
 
-        FinalisedAccess {
+        let Some((resource_id, resource_access, resource_password)) = self.resource_details else { return None };
+
+
+        Some(FinalisedAccess {
             program_id, 
             program_password: self.program_password,
             user_details: self.user_details, 
-            resource_id: self.resource_id, 
-            resource_password: self.resource_password, 
-            resource_access: self.resource_access
-        }
+            resource_id,
+            resource_password, 
+            resource_access
+        })
     }
 }
