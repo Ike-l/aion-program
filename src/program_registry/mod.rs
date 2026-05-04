@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
+use crate::prelude::{AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
 pub mod prompted_program_access;
 
@@ -27,10 +27,10 @@ pub struct ProgramRegistry {
 }
 
 impl ProgramRegistry {
-    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess<'a>>) -> Result<<T as Injection>::Item<'a>, ResolveResourceError> {
+    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess<'a>>) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(&self.global_program_id, false)).collect();
 
-        let submitted_accesses = T::submit_access(access_builders);
+        let submitted_accesses = T::submit_access(access_builders)?;
 
         let mut resolved_resources = HashMap::new();
 
@@ -113,7 +113,7 @@ impl ProgramRegistry {
         }).collect::<Vec<_>>();
 
         let resolve_result = T::resolve_access(derived_results);
-        match resolve_result {
+        Ok(match resolve_result {
             Ok(item) => Ok(item),
             Err(err) => {
                 for (program_id, accesses) in resolved_resources {
@@ -147,7 +147,7 @@ impl ProgramRegistry {
                 }
                 Err(err)
             },
-        }
+        })
     }
 
     /// # Safety

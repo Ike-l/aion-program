@@ -14,6 +14,11 @@ pub struct AccessBuilder<'a> {
 }
 
 impl<'a> AccessBuilder<'a> {
+    /// None IFF: 
+    /// 
+    /// * No ResourceId
+    /// 
+    /// * No Resource Access
     pub fn build(self) -> Option<FinalisedAccess<'a>> {
         let program_id = match self.use_global_program_id {
             true => self.global_program_id,

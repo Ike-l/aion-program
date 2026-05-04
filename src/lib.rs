@@ -19,6 +19,9 @@ pub mod prelude {
             resolve_resource_error::{
                 ResolveResourceError
             },
+            access_submission_error::{
+                AccessSubmissionError
+            },
             derived_resource::{
                 DerivedResource,
             },

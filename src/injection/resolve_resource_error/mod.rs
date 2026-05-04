@@ -1,5 +1,5 @@
 pub enum ResolveResourceError {
     Casting,
-    RequiresResource,
-    InputMismatch
+    NotEnoughDerivedResults,
+    AccessSubmissionErro
 }
