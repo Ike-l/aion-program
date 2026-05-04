@@ -1,14 +1,11 @@
 use std::{any::Any, fmt::Debug};
 
 pub struct Resource {
-    inner: Box<dyn Any>,
+    inner: Box<dyn Any + Send + Sync>,
 }
 
-// unsafe impl Send for Resource {}
-// unsafe impl Sync for Resource {}
-
 impl Resource {
-    pub fn new<T: 'static>(value: T) -> Self {
+    pub fn new<T: 'static + Sync + Send>(value: T) -> Self {
         Self {
             inner: Box::new(value)
         }
