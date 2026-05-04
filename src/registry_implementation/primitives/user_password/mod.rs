@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum UserPassword {
     Label(String),
     Number(u64),
