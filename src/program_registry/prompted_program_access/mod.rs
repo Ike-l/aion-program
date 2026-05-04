@@ -2,7 +2,7 @@ use crate::prelude::{AccessBuilder, ProgramId, ResourceAccess, ResourceId, UserI
 
 pub struct PromptedProgramAccess<'a> {
     pub program_id: &'a ProgramId,
-    pub program_password: Option<ValuePassword>,
+    pub program_password: Option<&'a ValuePassword>,
 
     pub user_details: Option<(UserId, UserPassword)>,
     pub resource_details: Option<(ResourceId, ResourceAccess, Option<ValuePassword>)>,    

@@ -2,7 +2,7 @@ use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, Use
 
 pub struct AccessBuilder<'a> {
     pub program_id: &'a ProgramId,
-    pub program_password: Option<ValuePassword>,
+    pub program_password: Option<&'a ValuePassword>,
 
     pub global_program_id: &'a ProgramId,
     pub use_global_program_id: bool,

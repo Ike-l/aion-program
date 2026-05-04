@@ -50,7 +50,7 @@ impl ProgramRegistry {
                 user_details,
                 resource_id: program_id.clone(),
                 access: program_access.clone(),
-                password: program_password.as_ref(),
+                password: program_password,
             });  
 
             if let RegistryAcquireAccessResult::Found(access_result) = program_access_result {
