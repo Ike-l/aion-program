@@ -1,5 +1,6 @@
 pub enum ResolveResourceError {
     Casting,
-    NotEnoughDerivedResults,
-    AccessSubmissionErro
+    Resolving,
+    NotEnoughResults,
+    TooManyResults,
 }
