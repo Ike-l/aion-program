@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
@@ -31,7 +31,9 @@ impl ProgramRegistry {
         let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(self.global_program_id.clone(), false)).collect();
 
         let submitted_accesses = T::submit_access(access_builders);
-    
+
+        let mut resolved_resources = HashMap::new();
+
         let derived_results = submitted_accesses.into_iter().map(|FinalisedAccess { 
             program_id, 
             program_password,
@@ -62,6 +64,10 @@ impl ProgramRegistry {
                 });
                 
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
+                    resolved_resources.entry(program_id.clone())
+                        .or_insert(Vec::default())
+                        .push((program, resource_access.clone(), resource_id.clone()));
+
                     DerivedResult::Complete(ResolvedResource::new(
                         access_result,
                         Arc::clone(self),
@@ -110,7 +116,35 @@ impl ProgramRegistry {
         match resolve_result {
             Ok(item) => Ok(item),
             Err(err) => {
-                todo!("deaccess all accessed resources");
+                for (program_id, accesses) in resolved_resources {
+                    for (program, resource_access, resource_id) in accesses {
+                        assert!(
+                            matches!(
+                                // Safety
+                                // We do not use the resources any further (in the drop)
+                                unsafe {
+                                    program.release_access(&RegistryReleaseAccess {
+                                        resource_id: &resource_id,
+                                        access: &resource_access
+                                    })
+                                },
+                                RegistryReleaseAccessResult::Ok
+                            )
+                        );
+                    }
+    
+                    assert!(
+                        matches!(
+                            // Safety
+                            // We do not use program any further
+                            // and we do not store it
+                            unsafe {
+                                self.release_access(&ProgramReleaseAccess { program_id: &program_id })
+                            },
+                            RegistryReleaseAccessResult::Ok
+                        )
+                    );
+                }
                 Err(err)
             },
         }
