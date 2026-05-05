@@ -7,7 +7,7 @@ pub struct PromptedProgramAccess<'a> {
     pub user_details: Option<(&'a UserId, &'a UserPassword)>,
     pub resource_id: Option<ResourceId>, 
     pub resource_access: Option<ResourceAccess>, 
-    pub resource_password: Option<ValuePassword>,     
+    pub resource_password: Option<&'a ValuePassword>,     
 }
 
 impl<'a> PromptedProgramAccess<'a> {

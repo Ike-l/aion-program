@@ -42,8 +42,6 @@ impl ProgramRegistry {
             resource_password, 
             resource_access 
         }| {
-            // let user_details = user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
-
             let program_access = ProgramAccess::Shared(1);
 
             let program_access_result = self.programs.acquire_access(RegistryAcquireAccess {
@@ -60,7 +58,7 @@ impl ProgramRegistry {
                     user_details,
                     resource_id: resource_id.clone(),
                     access: resource_access.clone(),
-                    password: resource_password.as_ref()
+                    password: resource_password
                 });
                 
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {

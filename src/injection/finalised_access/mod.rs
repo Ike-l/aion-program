@@ -7,6 +7,6 @@ pub struct FinalisedAccess<'a> {
     pub user_details: Option<(&'a UserId, &'a UserPassword)>,
 
     pub resource_id: ResourceId,
-    pub resource_password: Option<ValuePassword>,
+    pub resource_password: Option<&'a ValuePassword>,
     pub resource_access: ResourceAccess,
 }
