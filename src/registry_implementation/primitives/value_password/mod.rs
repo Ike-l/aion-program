@@ -1,4 +1,4 @@
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ValuePassword {
     password: u64
 }
