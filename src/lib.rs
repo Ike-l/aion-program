@@ -31,9 +31,6 @@ pub mod prelude {
             program_registry_input::{
                 ProgramReleaseAccess
             },
-            prompted_program_access::{
-                PromptedProgramAccess
-            },
             derived_result::{
                 DerivedResult
             },

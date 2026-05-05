@@ -2,9 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, PromptedProgramAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
-
-pub mod prompted_program_access;
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -27,9 +25,7 @@ pub struct ProgramRegistry {
 }
 
 impl ProgramRegistry {
-    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, prompted_program_accesses: Vec<PromptedProgramAccess<'a>>) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
-        let access_builders = prompted_program_accesses.into_iter().map(|prompted_accesses| prompted_accesses.with(&self.global_program_id, false)).collect();
-
+    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, access_builders: Vec<AccessBuilder<'a>>) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
         let mut resolved_resources = HashMap::new();
