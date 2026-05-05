@@ -11,7 +11,10 @@ pub mod prelude {
         injection::{
             Injection,
             access_builder::{
-                AccessBuilder
+                AccessBuilder,
+                owned_access_builder::{
+                    OwnedAccessBuilder
+                }
             },
             finalised_access::{
                 FinalisedAccess

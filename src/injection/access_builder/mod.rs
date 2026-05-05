@@ -1,4 +1,6 @@
-use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
+use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, OwnedAccessBuilder};
+
+pub mod owned_access_builder;
 
 #[derive(Clone)]
 pub struct AccessBuilder<'a> {
@@ -32,5 +34,19 @@ impl<'a> AccessBuilder<'a> {
             resource_password: self.resource_password, 
             resource_access
         })
+    }
+}
+
+impl<'a> From<&'a OwnedAccessBuilder> for AccessBuilder<'a> {
+    fn from(value: &'a OwnedAccessBuilder) -> Self {
+        let user_details = value.user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
+        Self {
+            program_id: value.program_id.as_ref(),
+            program_password: value.program_password.as_ref(),
+            user_details,
+            resource_id: value.resource_id.clone(),
+            resource_access: value.resource_access.clone(),
+            resource_password: value.resource_password.as_ref(),
+        }
     }
 }
