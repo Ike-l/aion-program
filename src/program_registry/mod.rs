@@ -38,6 +38,11 @@ impl ProgramRegistry {
             resource_password, 
             resource_access 
         }| {
+            let program_id = match program_id {
+                Some(program_id) => program_id,
+                None => &self.global_program_id,
+            };
+
             let program_access = ProgramAccess::Shared(1);
 
             let program_access_result = self.programs.acquire_access(RegistryAcquireAccess {
