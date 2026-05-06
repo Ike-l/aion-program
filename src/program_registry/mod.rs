@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{StoredResource, ProgramRegistryReplaceResourceError, ProgramReplaceResource, AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
+use crate::prelude::{ProgramRegistryResolveWithInsert, ResourceAccess, StoredResource, ProgramRegistryReplaceResourceError, ProgramRegistryReplaceResource, AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -26,7 +26,10 @@ pub struct ProgramRegistry {
 }
 
 impl ProgramRegistry {
-    pub fn resolve<'a, T: Injection>(self: &'a Arc<Self>, access_builders: Vec<AccessBuilder<'a>>) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
+    pub fn resolve<'a, T: Injection>(
+        self: &'a Arc<Self>, 
+        access_builders: Vec<AccessBuilder<'a>>
+    ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
         let mut resolved_resources = HashMap::new();
@@ -167,7 +170,7 @@ impl ProgramRegistry {
 
     pub fn replace_resource<'a>(
         &self,
-        ProgramReplaceResource {
+        ProgramRegistryReplaceResource {
             user_details,
             program_id,
             program_password,
@@ -176,7 +179,7 @@ impl ProgramRegistry {
             access,
             resource_id,
             resource_password,
-        }: ProgramReplaceResource<'a>
+        }: ProgramRegistryReplaceResource<'a>
     ) -> Result<RegistrySaferReplacementResult<StoredResource>, ProgramRegistryReplaceResourceError> {
         let program_id = match program_id {
             Some(program_id) => program_id,
@@ -208,6 +211,64 @@ impl ProgramRegistry {
             RegistryAcquireAccessResult::OwnershipDenied => Err(ProgramRegistryReplaceResourceError::OwnershipDenied),
             RegistryAcquireAccessResult::WhitelistDenied => Err(ProgramRegistryReplaceResourceError::WhitelistDenied),
             RegistryAcquireAccessResult::BlacklistDenied => Err(ProgramRegistryReplaceResourceError::BlacklistDenied),
+        }
+    }
+
+    /// # Returns
+    /// `None` if needs to replace with None `ResourceId`
+    /// 
+    /// `Some/Err` if `access_builders` is malformed
+    /// 
+    /// `Some/Ok/Err` if the `Injection` fails. Cannot be ResolveResourceError::Resolving
+    /// 
+    /// `Some/Ok/Ok/Err` for replacement error
+    /// 
+    /// `Some/Ok/Ok/Ok` for successfully resolved 
+    pub fn resolve_with_insert<'a, T: Injection>(
+        self: &'a Arc<Self>,
+        access_builders: Vec<AccessBuilder<'a>>,
+        ProgramRegistryResolveWithInsert {
+            user_details,
+            program_id,
+            program_password,
+            resource,
+            resource_id,
+            resource_password,
+        }: ProgramRegistryResolveWithInsert
+    ) -> Option<Result<Result<Result<T::Item<'a>, ProgramRegistryReplaceResourceError>, ResolveResourceError>, AccessSubmissionError>> {
+        match self.resolve::<T>(access_builders.iter().cloned().collect()) {
+            Ok(Ok(result)) => {
+                Some(Ok(Ok(Ok(result))))
+            },
+            Ok(Err(resolve_resource_error)) => {
+                if resolve_resource_error == ResolveResourceError::Resolving {
+                    let resource_id = resource_id?;
+
+                    let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
+                        user_details, 
+                        program_id, 
+                        program_password, 
+                        resource, 
+                        access: &ResourceAccess::Replace, 
+                        resource_id, 
+                        resource_password
+                    });
+
+                    match replace_result {
+                        Ok(_) => {
+                            match self.resolve::<T>(access_builders) {
+                                Ok(Ok(result)) => Some(Ok(Ok(Ok(result)))),
+                                Ok(Err(_)) => unreachable!("Replacing makes this unreachable"),
+                                Err(access_submission_error) => Some(Err(access_submission_error)),
+                            }
+                        },
+                        Err(replace_error) => Some(Ok(Ok(Err(replace_error)))),
+                    }
+                } else {
+                    Some(Ok(Err(resolve_resource_error)))
+                }
+            },
+            Err(access_submission_error) => Some(Err(access_submission_error)),
         }
     }
 }
