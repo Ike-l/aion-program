@@ -2,7 +2,7 @@ use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, Use
 
 pub mod owned_access_builder;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct AccessBuilder<'a> {
     pub program_id: Option<&'a ProgramId>,
 

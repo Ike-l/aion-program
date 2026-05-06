@@ -51,6 +51,7 @@ pub mod prelude {
             },
             stored_program::{
                 StoredProgram,
+                StoredProgramTrait,
                 program::{
                     Program,
                     resource_access::{

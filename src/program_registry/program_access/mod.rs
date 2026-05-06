@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tracing::{Level, event};
 
-use crate::prelude::{AccessResult, BorrowType, Program, StoredProgram};
+use crate::prelude::{StoredProgramTrait, AccessResult, BorrowType, Program, StoredProgram};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProgramAccess {
@@ -115,7 +115,7 @@ impl aion_state::prelude::Accessor for ProgramAccess {
     ) -> Self::StoredValue {
         event!(Level::TRACE, "Access Insert");
 
-        Self::StoredValue::new(value)
+        <Self::StoredValue as StoredProgramTrait>::new(value)
     }
 
     fn remove<'a>(
