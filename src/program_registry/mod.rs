@@ -215,7 +215,7 @@ impl ProgramRegistry {
     }
 
     /// # Returns
-    /// `None` if needs to replace with None `ResourceId`
+    /// `None` if needs to replace with `ResourceId` OR `Resource` as None
     /// 
     /// `Some/Err` if `access_builders` is malformed
     /// 
@@ -243,12 +243,13 @@ impl ProgramRegistry {
             Ok(Err(resolve_resource_error)) => {
                 if resolve_resource_error == ResolveResourceError::Resolving {
                     let resource_id = resource_id?;
+                    let resource = resource?();
 
                     let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
                         user_details, 
                         program_id, 
                         program_password, 
-                        resource, 
+                        resource: Some(resource), 
                         access: &ResourceAccess::Replace, 
                         resource_id, 
                         resource_password

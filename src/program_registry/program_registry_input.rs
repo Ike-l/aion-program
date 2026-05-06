@@ -21,7 +21,7 @@ pub struct ProgramRegistryResolveWithInsert<'a> {
     pub program_id: Option<ProgramId>,
     pub program_password: Option<&'a ValuePassword>,
 
-    pub resource: Option<Resource>,
+    pub resource: Option<Box<dyn FnOnce() -> Resource>>,
     pub resource_id: Option<ResourceId>,
     pub resource_password: Option<&'a ValuePassword>
 }
