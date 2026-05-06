@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use aion_state::prelude::{Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
+use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
+use crate::prelude::{StoredResource, ProgramRegistryReplaceResourceError, ProgramReplaceResource, AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -10,6 +10,7 @@ pub mod program_access;
 pub mod resolved_resource;
 pub mod derived_result;
 pub mod program_registry_input;
+pub mod program_registry_result;
 
 pub struct ProgramRegistry {
     global_program_id: ProgramId,
@@ -138,7 +139,7 @@ impl ProgramRegistry {
                             // We do not use program any further
                             // and we do not store it
                             unsafe {
-                                self.release_access(&ProgramReleaseAccess { program_id: &program_id })
+                                self.release_access(&ProgramRegistryReleaseAccess { program_id: &program_id })
                             },
                             RegistryReleaseAccessResult::Ok
                         )
@@ -154,13 +155,54 @@ impl ProgramRegistry {
     /// Ensure what is being released is actually released
     pub(crate) unsafe fn release_access(
         &self,
-        ProgramReleaseAccess {
+        ProgramRegistryReleaseAccess {
             program_id,
-        }: &ProgramReleaseAccess
+        }: &ProgramRegistryReleaseAccess
     ) -> RegistryReleaseAccessResult {
         unsafe { self.programs.release_access(&RegistryReleaseAccess {
             resource_id: *program_id,
             access: &ProgramAccess::Shared(1)
         }) }
+    }
+
+    pub fn replace_resource<'a>(
+        &self,
+        ProgramReplaceResource {
+            user_details,
+            program_id,
+            program_password,
+
+            resource,
+            access,
+            resource_id,
+            resource_password,
+        }: ProgramReplaceResource<'a>
+    ) -> Result<RegistrySaferReplacementResult<StoredResource>, ProgramRegistryReplaceResourceError> {
+        match self.programs.acquire_access(RegistryAcquireAccess {
+            user_details,
+            resource_id: program_id,
+            access: ProgramAccess::Shared(1),
+            password: program_password
+        }) {
+            RegistryAcquireAccessResult::Found(access_result) => {
+                let program = access_result.as_ref().unwrap();
+                Ok(program.safer_replace(
+                    RegistrySaferReplacement {
+                        user_details,
+                        access,
+                        resource_id,
+                        resource,
+                        password: resource_password,
+                    }
+                ))
+            },
+            RegistryAcquireAccessResult::NotFound => Err(ProgramRegistryReplaceResourceError::NotFound),
+            RegistryAcquireAccessResult::AccessConflict => Err(ProgramRegistryReplaceResourceError::AccessConflict),
+            RegistryAcquireAccessResult::ReservationConflict => Err(ProgramRegistryReplaceResourceError::ReservationConflict),
+            RegistryAcquireAccessResult::VerificationFailure => Err(ProgramRegistryReplaceResourceError::VerificationFailure),
+            RegistryAcquireAccessResult::OwnershipDenied => Err(ProgramRegistryReplaceResourceError::OwnershipDenied),
+            RegistryAcquireAccessResult::WhitelistDenied => Err(ProgramRegistryReplaceResourceError::WhitelistDenied),
+            RegistryAcquireAccessResult::BlacklistDenied => Err(ProgramRegistryReplaceResourceError::BlacklistDenied),
+        }
     }
 }

@@ -32,7 +32,11 @@ pub mod prelude {
         program_registry::{
             ProgramRegistry,
             program_registry_input::{
-                ProgramReleaseAccess
+                ProgramRegistryReleaseAccess,
+                ProgramReplaceResource
+            },
+            program_registry_result::{
+                ProgramRegistryReplaceResourceError
             },
             derived_result::{
                 DerivedResult

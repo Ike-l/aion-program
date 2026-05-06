@@ -2,6 +2,8 @@ use tracing::{Level, event};
 
 use crate::prelude::{StoredResourceTrait, AccessResult, BorrowType, Resource, StoredResource};
 
+use aion_state::prelude::Accessor;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ResourceAccess {
     Shared(usize),
@@ -20,7 +22,7 @@ impl ResourceAccess {
     }
 }
 
-impl aion_state::accessor::Accessor for ResourceAccess {
+impl Accessor for ResourceAccess {
     type StoredValue = StoredResource;
     type Value = Resource;
 

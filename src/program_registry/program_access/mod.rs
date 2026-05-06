@@ -4,6 +4,8 @@ use tracing::{Level, event};
 
 use crate::prelude::{StoredProgramTrait, AccessResult, BorrowType, Program, StoredProgram};
 
+use aion_state::prelude::Accessor;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProgramAccess {
     Shared(usize),
@@ -20,7 +22,7 @@ impl ProgramAccess {
     }
 }
 
-impl aion_state::prelude::Accessor for ProgramAccess {
+impl Accessor for ProgramAccess {
     type StoredValue = StoredProgram;
     type Value = Arc<Program>;
 
