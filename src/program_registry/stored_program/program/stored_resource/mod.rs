@@ -2,21 +2,31 @@ use crate::prelude::Resource;
 
 pub mod resource;
 
-pub struct StoredResource {
-    resource: Resource
+pub type StoredResource = Box<Resource>;
+
+pub trait StoredResourceTrait {
+    type Resource;
+
+    fn new(resource: Self::Resource) -> Self;
+
+    fn get(&self) -> &Self::Resource;
+
+    fn get_mut(&mut self) -> &mut Self::Resource;
 }
 
-impl StoredResource {
-    pub fn new(resource: Resource) -> Self {
-        Self { resource }
+impl StoredResourceTrait for StoredResource {
+    type Resource = Resource;
+
+    fn new(resource: Self::Resource) -> Self {
+        Box::new(resource)
     }
 
-    pub fn get(&self) -> &Resource {
-        &self.resource
+    fn get(&self) -> &Self::Resource {
+        self
     }
 
-    pub fn get_mut(&mut self) -> &mut Resource {
-        &mut self.resource
+    fn get_mut(&mut self) -> &mut Self::Resource {
+        self
     }
 }
 

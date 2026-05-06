@@ -1,6 +1,6 @@
 use tracing::{Level, event};
 
-use crate::prelude::{AccessResult, BorrowType, Resource, StoredResource};
+use crate::prelude::{StoredResourceTrait, AccessResult, BorrowType, Resource, StoredResource};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ResourceAccess {

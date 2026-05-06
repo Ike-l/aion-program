@@ -62,6 +62,7 @@ pub mod prelude {
                     },
                     stored_resource::{
                         StoredResource,
+                        StoredResourceTrait,
                         resource::{
                             Resource
                         }
