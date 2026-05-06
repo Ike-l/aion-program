@@ -6,7 +6,7 @@ pub struct ProgramRegistryReleaseAccess<'a> {
 
 pub struct ProgramReplaceResource<'a> {
     pub user_details: Option<(&'a UserId, &'a UserPassword)>,
-    pub program_id: ProgramId,
+    pub program_id: Option<ProgramId>,
     pub program_password: Option<&'a ValuePassword>,
 
     pub resource: Option<Resource>,

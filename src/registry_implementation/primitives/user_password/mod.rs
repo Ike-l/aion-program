@@ -6,3 +6,9 @@ pub enum UserPassword {
     Number(u64),
     TypeId(TypeId)
 }
+
+impl UserPassword {
+    pub fn type_id<T: 'static>() -> Self {
+        Self::TypeId(TypeId::of::<T>())
+    }
+}

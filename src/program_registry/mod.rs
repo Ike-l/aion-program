@@ -178,6 +178,11 @@ impl ProgramRegistry {
             resource_password,
         }: ProgramReplaceResource<'a>
     ) -> Result<RegistrySaferReplacementResult<StoredResource>, ProgramRegistryReplaceResourceError> {
+        let program_id = match program_id {
+            Some(program_id) => program_id,
+            None => self.global_program_id.clone(),
+        };
+
         match self.programs.acquire_access(RegistryAcquireAccess {
             user_details,
             resource_id: program_id,
