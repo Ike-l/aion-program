@@ -9,7 +9,7 @@ pub struct CastedResource<'a, T> {
     
     program_registry: Arc<ProgramRegistry>,
     program: Arc<Program>,
-    program_id: &'a ProgramId,
+    program_id: ProgramId,
 
     resource_access: ResourceAccess,
     resource_id: ResourceId,
@@ -20,7 +20,7 @@ impl<'a, T> CastedResource<'a, T> {
         access_result: AccessResult<'a, T>,
         program_registry: Arc<ProgramRegistry>,
         program: Arc<Program>,
-        program_id: &'a ProgramId,
+        program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
     ) -> Self {

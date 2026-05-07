@@ -1,20 +1,18 @@
-use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, OwnedAccessBuilder};
+use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
 
-pub mod owned_access_builder;
+#[derive(Debug, Clone, Default)]
+pub struct AccessBuilder {
+    pub program_id: Option<ProgramId>,
 
-#[derive(Clone, Default)]
-pub struct AccessBuilder<'a> {
-    pub program_id: Option<&'a ProgramId>,
+    pub program_password: Option<ValuePassword>,
 
-    pub program_password: Option<&'a ValuePassword>,
-
-    pub user_details: Option<(&'a UserId, &'a UserPassword)>,
+    pub user_details: Option<(UserId, UserPassword)>,
     pub resource_id: Option<ResourceId>, 
     pub resource_access: Option<ResourceAccess>, 
-    pub resource_password: Option<&'a ValuePassword>,   
+    pub resource_password: Option<ValuePassword>,   
 }
 
-impl<'a> AccessBuilder<'a> {
+impl AccessBuilder {
     /// None IFF: 
     /// 
     /// * No `ResourceId`
@@ -22,7 +20,7 @@ impl<'a> AccessBuilder<'a> {
     /// * No `ResourceAccess`
     /// 
     /// If `ProgramId` is None then will use the global program id
-    pub fn build(self) -> Option<FinalisedAccess<'a>> {
+    pub fn build(self) -> Option<FinalisedAccess> {
         let Some(resource_id) = self.resource_id else { return None };
         let Some(resource_access) = self.resource_access else { return None };
 
@@ -37,16 +35,3 @@ impl<'a> AccessBuilder<'a> {
     }
 }
 
-impl<'a> From<&'a OwnedAccessBuilder> for AccessBuilder<'a> {
-    fn from(value: &'a OwnedAccessBuilder) -> Self {
-        let user_details = value.user_details.as_ref().map(|(user_id, user_password)| (user_id, user_password));
-        Self {
-            program_id: value.program_id.as_ref(),
-            program_password: value.program_password.as_ref(),
-            user_details,
-            resource_id: value.resource_id.clone(),
-            resource_access: value.resource_access.clone(),
-            resource_password: value.resource_password.as_ref(),
-        }
-    }
-}

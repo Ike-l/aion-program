@@ -28,7 +28,7 @@ pub struct ProgramRegistry {
 impl ProgramRegistry {
     pub fn resolve<'a, T: Injection>(
         self: &'a Arc<Self>, 
-        access_builders: Vec<AccessBuilder<'a>>
+        access_builders: Vec<AccessBuilder>
     ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
@@ -44,16 +44,17 @@ impl ProgramRegistry {
         }| {
             let program_id = match program_id {
                 Some(program_id) => program_id,
-                None => &self.global_program_id,
+                None => self.global_program_id.clone(),
             };
 
             let program_access = ProgramAccess::Shared(1);
+            let user_details = user_details.as_ref().map(|(u, p)| (u, p));
 
             let program_access_result = self.programs.acquire_access(RegistryAcquireAccess {
                 user_details,
                 resource_id: program_id.clone(),
                 access: program_access.clone(),
-                password: program_password,
+                password: program_password.as_ref(),
             });  
 
             if let RegistryAcquireAccessResult::Found(access_result) = program_access_result {
@@ -63,7 +64,7 @@ impl ProgramRegistry {
                     user_details,
                     resource_id: resource_id.clone(),
                     access: resource_access.clone(),
-                    password: resource_password
+                    password: resource_password.as_ref()
                 });
                 
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
@@ -226,7 +227,7 @@ impl ProgramRegistry {
     /// `Some/Ok/Ok/Ok` for successfully resolved 
     pub fn resolve_with_insert<'a, T: Injection>(
         self: &'a Arc<Self>,
-        access_builders: Vec<AccessBuilder<'a>>,
+        access_builders: Vec<AccessBuilder>,
         ProgramRegistryResolveWithInsert {
             user_details,
             program_id,
