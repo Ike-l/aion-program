@@ -3,8 +3,6 @@ use crate::prelude::Resource;
 pub enum AccessResult<'a, T> {
     Shared(&'a T),
     Unique(&'a mut T),
-    Taken(T),
-    Box(Box<T>),
 }
 
 impl<'a> AccessResult<'a, Resource> {
@@ -18,8 +16,6 @@ impl<'a> AccessResult<'a, Resource> {
                     Err(AccessResult::Unique(inner))
                 }
             },
-            AccessResult::Taken(inner) => inner.as_box().map(AccessResult::Box).map_err(Self::Taken),
-            AccessResult::Box(_) => panic!("Cannot Resolve AccessResult::Box")
         }
     }
 }
@@ -29,14 +25,13 @@ impl<'a, T> AccessResult<'a, T> {
         match self {
             Self::Shared(inner) => Some(inner),
             Self::Unique(inner) => Some(inner),
-            _ => None
         }
     }
 
     pub fn as_mut(&mut self) -> Option<&'_ mut T> {
         match self {
             Self::Unique(inner) => Some(inner),
-            _ => None
+            Self::Shared(_) => panic!("Cannot use a shared resource as unique!")
         }
     }
 }

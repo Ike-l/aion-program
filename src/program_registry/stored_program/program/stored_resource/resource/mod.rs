@@ -24,13 +24,6 @@ impl Resource {
     pub fn is<T: 'static>(&self) -> bool {
         self.inner.is::<T>()
     }
-
-    pub fn as_box<T: 'static>(self) -> Result<Box<T>, Self> {
-        match self.inner.downcast() {
-            Ok(boxed) => Ok(boxed),
-            Err(inner) => Err(Self { inner }),
-        }
-    }
 }
 
 impl Debug for Resource {
