@@ -111,7 +111,7 @@ impl Accessor for ProgramAccess {
         }  
     }
 
-    fn insert<'a>(
+    fn insert(
         &self,
         value: Self::Value
     ) -> Self::StoredValue {
@@ -120,7 +120,7 @@ impl Accessor for ProgramAccess {
         <Self::StoredValue as StoredProgramTrait>::new(value)
     }
 
-    fn remove<'a>(
+    fn remove(
         &self,
         stored_value: Self::StoredValue
     ) -> Self::StoredValue {

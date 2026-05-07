@@ -112,7 +112,7 @@ impl Accessor for ResourceAccess {
         }  
     }
 
-    fn insert<'a>(
+    fn insert(
         &self,
         value: Self::Value
     ) -> Self::StoredValue {
@@ -121,7 +121,7 @@ impl Accessor for ResourceAccess {
         Self::StoredValue::new(value)
     }
 
-    fn remove<'a>(
+    fn remove(
         &self,
         stored_value: Self::StoredValue
     ) -> Self::StoredValue {
