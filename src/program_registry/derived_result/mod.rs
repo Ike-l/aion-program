@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use aion_state::prelude::RegistryAcquireAccessResult;
 
-use crate::prelude::{AccessResult, Program, ResolvedResource, Resource, ResolveResourceError};
+use crate::prelude::{AccessResult, Program, ResolveResourceError, ResolvedResource, Resource, UserId, UserPassword};
 
 pub enum DerivedResult<'a> {
     Complete(ResolvedResource<'a>),
@@ -18,5 +18,14 @@ impl<'a> TryFrom<DerivedResult<'a>> for ResolvedResource<'a> {
             DerivedResult::Complete(resolved_resource) => Ok(resolved_resource),
             _ => Err(ResolveResourceError::Resolving)
         }    
+    }
+}
+
+impl DerivedResult<'_> {
+    pub fn user_details(&self) -> Option<&Option<(UserId, UserPassword)>> {
+        match self {
+            DerivedResult::Complete(resolved_resource) => Some(resolved_resource.user_details()),
+            _ => None
+        }
     }
 }

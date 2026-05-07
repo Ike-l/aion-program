@@ -37,6 +37,10 @@ impl<'a> ResolvedResource<'a> {
         }
     }
 
+    pub fn user_details(&self) -> &Option<(UserId, UserPassword)> {
+        &self.user_details
+    }
+
     pub fn cast<Y: 'static>(self) -> Result<CastedResource<'a, Y>, Self> {
         let Self {
             access_result,
