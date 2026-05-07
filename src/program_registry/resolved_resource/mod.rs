@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::prelude::{AccessResult, CastedResource, Program, ProgramId, ProgramRegistry, Resource, ResourceAccess, ResourceId};
+use crate::prelude::{AccessResult, CastedResource, Program, ProgramId, ProgramRegistry, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub mod casted_resource;
 
@@ -13,6 +13,7 @@ pub struct ResolvedResource<'a> {
 
     resource_access: ResourceAccess,
     resource_id: ResourceId,
+    user_details: Option<(UserId, UserPassword)>
 }
 
 impl<'a> ResolvedResource<'a> {
@@ -23,6 +24,7 @@ impl<'a> ResolvedResource<'a> {
         program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
+        user_details: Option<(UserId, UserPassword)>
     ) -> Self {
         Self {
             access_result,
@@ -30,7 +32,8 @@ impl<'a> ResolvedResource<'a> {
             program,
             program_id,
             resource_access,
-            resource_id
+            resource_id,
+            user_details
         }
     }
 
@@ -41,12 +44,13 @@ impl<'a> ResolvedResource<'a> {
             program,
             program_id,
             resource_access,
-            resource_id
+            resource_id,
+            user_details
         } = self;
 
         match access_result.cast::<Y>() {
-            Ok(access_result) => Ok(CastedResource::new(access_result, program_registry, program, program_id, resource_access, resource_id)),
-            Err(access_result) => Err(Self::new(access_result, program_registry, program, program_id, resource_access, resource_id))
+            Ok(access_result) => Ok(CastedResource::new(access_result, program_registry, program, program_id, resource_access, resource_id, user_details)),
+            Err(access_result) => Err(Self::new(access_result, program_registry, program, program_id, resource_access, resource_id, user_details))
         }
     }
 }

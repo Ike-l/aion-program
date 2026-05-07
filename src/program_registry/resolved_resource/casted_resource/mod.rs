@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use aion_state::prelude::{RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{AccessResult, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseAccess, ResourceAccess, ResourceId};
+use crate::prelude::{AccessResult, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseAccess, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub struct CastedResource<'a, T> {
     access_result: AccessResult<'a, T>,
@@ -13,6 +13,7 @@ pub struct CastedResource<'a, T> {
 
     resource_access: ResourceAccess,
     resource_id: ResourceId,
+    user_details: Option<(UserId, UserPassword)>
 }
 
 impl<'a, T> CastedResource<'a, T> {
@@ -23,6 +24,7 @@ impl<'a, T> CastedResource<'a, T> {
         program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
+        user_details: Option<(UserId, UserPassword)>
     ) -> Self {
         Self {
             access_result,
@@ -30,8 +32,13 @@ impl<'a, T> CastedResource<'a, T> {
             program,
             program_id,
             resource_access,
-            resource_id
+            resource_id,
+            user_details
         }
+    }
+
+    pub fn user_details(&self) -> &Option<(UserId, UserPassword)> {
+        &self.user_details
     }
 
     pub fn as_ref(&self) -> Option<&T> {

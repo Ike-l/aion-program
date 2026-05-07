@@ -79,6 +79,7 @@ impl ProgramRegistry {
                         program_id,
                         resource_access,
                         resource_id,
+                        user_details.map(|(user_id, user_password)| (user_id.clone(), user_password.clone())),
                     ))
                 } else {
                     assert!(
