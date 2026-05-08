@@ -26,9 +26,10 @@ pub mod prelude {
         program_registry::{
             ProgramRegistry,
             program_registry_input::{
-                ProgramRegistryReleaseAccess,
+                ProgramRegistryReleaseProgram,
                 ProgramRegistryReplaceResource,
-                ProgramRegistryResolveWithInsert
+                ProgramRegistryResolveWithInsert,
+                ProgramRegistryAcquireProgram
             },
             program_registry_result::{
                 ProgramRegistryReplaceResourceError

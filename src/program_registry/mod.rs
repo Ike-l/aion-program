@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
-use crate::prelude::{ProgramRegistryResolveWithInsert, ResourceAccess, StoredResource, ProgramRegistryReplaceResourceError, ProgramRegistryReplaceResource, AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryReleaseAccess, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, StoredProgram, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -48,15 +48,13 @@ impl ProgramRegistry {
                 None => self.global_program_id.clone(),
             };
 
-            let program_access = ProgramAccess::Shared(1);
             let user_details = user_details.as_ref().map(|(u, p)| (u, p));
 
-            let program_access_result = self.programs.acquire_access(RegistryAcquireAccess {
-                user_details,
-                resource_id: program_id.clone(),
-                access: program_access.clone(),
-                password: program_password.as_ref(),
-            });  
+            let program_access_result = self.acquire_program(ProgramRegistryAcquireProgram { 
+                user_details, 
+                program_id: program_id.clone(), 
+                program_password: program_password.as_ref()
+            });
 
             if let RegistryAcquireAccessResult::Found(access_result) = program_access_result {
                 let AccessResult::Shared(program) = access_result else { unreachable!() };
@@ -88,12 +86,11 @@ impl ProgramRegistry {
                             // Safety
                             // We do not use program any further
                             // and we do not store it
-                            unsafe { 
-                                self.programs.release_access(&RegistryReleaseAccess {
-                                    resource_id: &program_id,
-                                    access: &program_access
-                                }) 
-                            }, 
+                            unsafe {
+                                self.release_program(&ProgramRegistryReleaseProgram {
+                                    program_id: &program_id,
+                                })
+                            },
                             RegistryReleaseAccessResult::Ok
                         )
                     );
@@ -105,15 +102,15 @@ impl ProgramRegistry {
                         // Safety
                         // We do not use program any further
                         // and we do not store it
-                        unsafe { 
-                            self.programs.release_access(&RegistryReleaseAccess {
-                                resource_id: &program_id,
-                                access: &program_access
-                            }) 
-                        }, 
+                        unsafe {
+                            self.release_program(&ProgramRegistryReleaseProgram {
+                                program_id: &program_id,
+                            })
+                        },
                         RegistryReleaseAccessResult::Ok
                     )
                 );
+
                 DerivedResult::ProgramAccessNotFound(program_access_result)
             }
         }).collect::<Vec<_>>();
@@ -145,7 +142,7 @@ impl ProgramRegistry {
                             // We do not use program any further
                             // and we do not store it
                             unsafe {
-                                self.release_access(&ProgramRegistryReleaseAccess { program_id: &program_id })
+                                self.release_program(&ProgramRegistryReleaseProgram { program_id: &program_id })
                             },
                             RegistryReleaseAccessResult::Ok
                         )
@@ -166,16 +163,32 @@ impl ProgramRegistry {
     /// # Safety
     /// 
     /// Ensure what is being released is actually released
-    pub(crate) unsafe fn release_access(
+    pub(crate) unsafe fn release_program(
         &self,
-        ProgramRegistryReleaseAccess {
+        ProgramRegistryReleaseProgram {
             program_id,
-        }: &ProgramRegistryReleaseAccess
+        }: &ProgramRegistryReleaseProgram
     ) -> RegistryReleaseAccessResult {
         unsafe { self.programs.release_access(&RegistryReleaseAccess {
             resource_id: *program_id,
             access: &ProgramAccess::Shared(1)
         }) }
+    }
+
+    fn acquire_program(
+        &self,
+        ProgramRegistryAcquireProgram {
+            user_details,
+            program_id,
+            program_password
+        }: ProgramRegistryAcquireProgram
+    ) -> RegistryAcquireAccessResult<AccessResult<'_, StoredProgram>>{
+        self.programs.acquire_access(RegistryAcquireAccess {
+            user_details: user_details,
+            resource_id: program_id,
+            access: ProgramAccess::Shared(1),
+            password: program_password,
+        })
     }
 
     pub fn replace_resource<'a>(
