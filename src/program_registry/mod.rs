@@ -119,35 +119,6 @@ impl ProgramRegistry {
         Ok(match resolve_result {
             Ok(item) => Ok(item),
             Err(err) => {
-                for (program_id, accesses) in resolved_resources {
-                    for (program, resource_access, resource_id) in accesses {
-                        assert!(
-                            matches!(
-                                // Safety
-                                // We do not use the resources any further (in the drop)
-                                unsafe {
-                                    program.release_access(&RegistryReleaseAccess {
-                                        resource_id: &resource_id,
-                                        access: &resource_access
-                                    })
-                                },
-                                RegistryReleaseAccessResult::Ok
-                            )
-                        );
-                    }
-    
-                    assert!(
-                        matches!(
-                            // Safety
-                            // We do not use program any further
-                            // and we do not store it
-                            unsafe {
-                                self.release_program(&ProgramRegistryReleaseProgram { program_id: &program_id })
-                            },
-                            RegistryReleaseAccessResult::Ok
-                        )
-                    );
-                }
                 Err(err)
             },
         })
