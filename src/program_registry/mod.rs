@@ -117,7 +117,12 @@ impl ProgramRegistry {
         self: &'a Arc<Self>,
         access_builders: Vec<AccessBuilder>
     ) -> bool {
-        todo!()
+        // mayber a better way of doing this later?
+        // it literally just gets the access and then drops it immediately
+        // could mess up future "counters" or logging
+        // fuck logging bruh
+        // oh wait no its fine cause i can make a span saying its just checking ;)
+        self.resolve::<T>(access_builders).is_ok_and(|result| result.is_ok())
     }
 
     /// # Safety
