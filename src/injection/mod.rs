@@ -6,6 +6,7 @@ pub mod finalised_access;
 pub mod resolve_resource_error;
 pub mod access_submission_error;
 
+/// MUST BE SIDE-EFFECT FREE
 pub trait Injection {
     type Item<'new>;
 
