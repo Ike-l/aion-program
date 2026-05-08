@@ -277,6 +277,7 @@ impl ProgramRegistry {
     }
 
     pub fn program_ids(&self) -> impl Iterator<Item = &ProgramId> {
+        // ensure program_ids is full of all program_ids AND the global program id
         self.program_ids.iter()
     }
 }
