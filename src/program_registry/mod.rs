@@ -156,6 +156,13 @@ impl ProgramRegistry {
         })
     }
 
+    pub fn check_resolve<'a, T: Injection>(
+        self: &'a Arc<Self>,
+        access_builders: Vec<AccessBuilder>
+    ) -> bool {
+        todo!()
+    }
+
     /// # Safety
     /// 
     /// Ensure what is being released is actually released
