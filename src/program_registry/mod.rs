@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{collections::HashSet, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
@@ -33,8 +33,6 @@ impl ProgramRegistry {
     ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
-        let mut resolved_resources = HashMap::new();
-
         let derived_results = submitted_accesses.into_iter().map(|FinalisedAccess { 
             program_id, 
             program_password,
@@ -67,10 +65,6 @@ impl ProgramRegistry {
                 });
                 
                 if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
-                    resolved_resources.entry(program_id.clone())
-                        .or_insert(Vec::default())
-                        .push((program, resource_access.clone(), resource_id.clone()));
-
                     DerivedResult::Complete(ResolvedResource::new(
                         access_result,
                         Arc::clone(self),
