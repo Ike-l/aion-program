@@ -3,8 +3,6 @@ use crate::prelude::{AccessBuilder, FinalisedAccess, ResolveResourceError, Deriv
 pub mod access_builder;
 pub mod finalised_access;
 
-pub mod derived_resource;
-
 pub mod resolve_resource_error;
 pub mod access_submission_error;
 

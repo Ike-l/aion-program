@@ -22,9 +22,6 @@ pub mod prelude {
             access_submission_error::{
                 AccessSubmissionError
             },
-            derived_resource::{
-                DerivedResource,
-            },
         },
         program_registry::{
             ProgramRegistry,
