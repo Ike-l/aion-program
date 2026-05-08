@@ -116,12 +116,7 @@ impl ProgramRegistry {
         }).collect::<Vec<_>>();
 
         let resolve_result = T::resolve_access(derived_results);
-        Ok(match resolve_result {
-            Ok(item) => Ok(item),
-            Err(err) => {
-                Err(err)
-            },
-        })
+        Ok(resolve_result)
     }
 
     pub fn check_resolve<'a, T: Injection>(
