@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 
@@ -13,6 +13,7 @@ pub mod program_registry_input;
 pub mod program_registry_result;
 
 pub struct ProgramRegistry {
+    program_ids: HashSet<ProgramId>,
     global_program_id: ProgramId,
     programs: Registry<
         RegistryStorage<ProgramId, StoredProgram>,
@@ -273,5 +274,9 @@ impl ProgramRegistry {
             },
             Err(access_submission_error) => Some(Err(access_submission_error)),
         }
+    }
+
+    pub fn program_ids(&self) -> impl Iterator<Item = &ProgramId> {
+        self.program_ids.iter()
     }
 }
