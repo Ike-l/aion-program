@@ -7,6 +7,8 @@ pub mod resolve_resource_error;
 pub mod access_submission_error;
 
 /// MUST BE SIDE-EFFECT FREE
+/// 
+/// Can have side effects if it doesnt assume its actually being used
 pub trait Injection {
     type Item<'new>;
 
