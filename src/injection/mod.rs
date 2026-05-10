@@ -12,7 +12,7 @@ pub mod access_submission_error;
 pub trait Injection {
     type Item<'new>;
 
-    fn claim_indexes(accesses: Vec<&AccessBuilder>) -> Vec<usize>;
+    fn claim_manual_access_builders(accesses: Vec<&AccessBuilder>) -> Vec<usize>;
 
     fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError>;
     fn resolve_access<'new>(derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError>;
