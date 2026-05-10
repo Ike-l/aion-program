@@ -109,7 +109,7 @@ impl ProgramRegistry {
             }
         }).collect::<Vec<_>>();
 
-        let resolve_result = T::resolve_access(derived_results);
+        let resolve_result = T::resolve_access(Arc::clone(self), derived_results);
         Ok(resolve_result)
     }
 
