@@ -43,6 +43,10 @@ impl<'a> ResolvedResource<'a> {
         &self.user_details
     }
 
+    pub fn resource_id(&self) -> &Option<ResourceId> {
+        &self.resource_id
+    }
+
     // NEVER MAKE PUBLIC
     fn take_all(&mut self) -> Option<(
         AccessResult<'a, Resource>,

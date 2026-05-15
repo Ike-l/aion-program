@@ -8,6 +8,8 @@ pub mod finalised_access;
 pub mod resolve_resource_error;
 pub mod access_submission_error;
 
+pub mod primitives;
+
 /// MUST BE SIDE-EFFECT FREE
 /// 
 /// Can have side effects if it doesnt assume its actually being used

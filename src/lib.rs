@@ -22,6 +22,17 @@ pub mod prelude {
             access_submission_error::{
                 AccessSubmissionError
             },
+            primitives::{
+                owned::{
+                    Owned
+                },
+                shared::{
+                    Shared
+                },
+                unique::{
+                    Unique
+                }
+            }
         },
         program_registry::{
             ProgramRegistry,
