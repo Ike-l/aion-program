@@ -1,5 +1,7 @@
 use std::{marker::PhantomData, sync::Arc};
 
+use hecs::Entity;
+
 use crate::prelude::{AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError};
 
 use crate::prelude::Shared;
@@ -18,8 +20,8 @@ impl<F: 'static, O> Injection for Owned<F, O>
 
     fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError> { Shared::<F>::submit_access(prompted_accesses) }
 
-    fn resolve_access<'new>(program_registry: Arc<ProgramRegistry>, derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
-        let result = Shared::<F>::resolve_access(program_registry, derived_results)?;
+    fn resolve_access<'new>(entity: Option<Entity>, program_registry: Arc<ProgramRegistry>, derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
+        let result = Shared::<F>::resolve_access(entity, program_registry, derived_results)?;
 
         let resource = result.as_ref().to_owned();
 

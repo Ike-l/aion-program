@@ -1,6 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
+use hecs::Entity;
 
 use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
 
@@ -29,6 +30,7 @@ pub struct ProgramRegistry {
 impl ProgramRegistry {
     pub fn resolve<'a, T: Injection>(
         self: &'a Arc<Self>, 
+        entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
     ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
@@ -109,7 +111,7 @@ impl ProgramRegistry {
             }
         }).collect::<Vec<_>>();
 
-        let resolve_result = T::resolve_access(Arc::clone(self), derived_results);
+        let resolve_result = T::resolve_access(entity, Arc::clone(self), derived_results);
         Ok(resolve_result)
     }
 
@@ -215,6 +217,7 @@ impl ProgramRegistry {
     /// `Some/Ok/Ok/Ok` for successfully resolved 
     pub fn resolve_with_insert<'a, T: Injection>(
         self: &'a Arc<Self>,
+        entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>,
         ProgramRegistryResolveWithInsert {
             user_details,
@@ -225,7 +228,7 @@ impl ProgramRegistry {
             resource_password,
         }: ProgramRegistryResolveWithInsert
     ) -> Option<Result<Result<Result<T::Item<'a>, ProgramRegistryReplaceResourceError>, ResolveResourceError>, AccessSubmissionError>> {
-        match self.resolve::<T>(access_builders.iter().cloned().collect()) {
+        match self.resolve::<T>(entity, access_builders.iter().cloned().collect()) {
             Ok(Ok(result)) => {
                 Some(Ok(Ok(Ok(result))))
             },
@@ -246,7 +249,7 @@ impl ProgramRegistry {
 
                     match replace_result {
                         Ok(_) => {
-                            match self.resolve::<T>(access_builders) {
+                            match self.resolve::<T>(entity, access_builders) {
                                 Ok(Ok(result)) => Some(Ok(Ok(Ok(result)))),
                                 Ok(Err(_)) => unreachable!("Replacing makes this unreachable"),
                                 Err(access_submission_error) => Some(Err(access_submission_error)),
