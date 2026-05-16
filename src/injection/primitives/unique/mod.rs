@@ -1,4 +1,4 @@
-use std::{any::TypeId, sync::Arc};
+use std::{any::TypeId, ops::{Deref, DerefMut}, sync::Arc};
 
 use hecs::Entity;
 
@@ -15,6 +15,20 @@ impl<'a, T> Unique<'a, T> {
 
     pub fn as_mut(&mut self) -> &mut T {
         self.resource.as_mut().expect("Expected Unique Resource")
+    }
+}
+
+impl<'a, T> Deref for Unique<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()    
+    }
+}
+
+impl<'a, T> DerefMut for Unique<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut()    
     }
 }
 

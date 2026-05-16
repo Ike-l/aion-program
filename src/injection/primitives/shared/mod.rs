@@ -1,4 +1,4 @@
-use std::{any::TypeId, sync::Arc};
+use std::{any::TypeId, ops::Deref, sync::Arc};
 
 use hecs::Entity;
 
@@ -11,6 +11,14 @@ pub struct Shared<'a, T> {
 impl<'a, T> Shared<'a, T> {
     pub fn as_ref(&self) -> &T {
         self.resource.as_ref().expect("Expected Shared Resource")
+    }
+}
+
+impl<'a, T> Deref for Shared<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()    
     }
 }
 
