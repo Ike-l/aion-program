@@ -3,7 +3,7 @@ use std::{collections::HashSet, iter::once, sync::Arc};
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -12,6 +12,8 @@ pub mod resolved_resource;
 pub mod derived_result;
 pub mod program_registry_input;
 pub mod program_registry_result;
+
+pub mod future_resolve;
 
 pub struct ProgramRegistry {
     program_ids: HashSet<ProgramId>,
@@ -45,8 +47,16 @@ impl ProgramRegistry {
         self: &'a Arc<Self>, 
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
-    ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
-        todo!()
+    ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve>, AccessSubmissionError> {
+        let submitted_accesses = T::submit_access(access_builders)?;
+
+        let derived_results = submitted_accesses.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
+
+        let resolved_result = T::resolve_access(entity, Arc::clone(self), derived_results);
+
+        Ok(resolved_result.map_err(|_| {
+            FutureResolve::new()
+        }))
     }
 
     // dont need

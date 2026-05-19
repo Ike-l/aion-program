@@ -36,6 +36,9 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
+            future_resolve::{
+                FutureResolve
+            },
             program_registry_input::{
                 ProgramRegistryReleaseProgram,
                 ProgramRegistryReplaceResource,
