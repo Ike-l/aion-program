@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "aion-state",
  "hecs",
+ "parking_lot",
  "rand",
  "small_derive_deref",
  "tracing",

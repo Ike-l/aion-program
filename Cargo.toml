@@ -12,3 +12,4 @@ small_derive_deref = "0.1.4"
 aion-state = { path = "../aion-state" }
 
 hecs = "0.11.0"
+parking_lot = "0.12.5"
