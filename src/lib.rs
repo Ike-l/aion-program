@@ -43,7 +43,8 @@ pub mod prelude {
                 ProgramRegistryReleaseProgram,
                 ProgramRegistryReplaceResource,
                 ProgramRegistryResolveWithInsert,
-                ProgramRegistryAcquireProgram
+                ProgramRegistryAcquireProgram,
+                ProgramRegistryReleaseResource
             },
             program_registry_result::{
                 ProgramRegistryReplaceResourceError

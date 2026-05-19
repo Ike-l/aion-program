@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{RegistryReleaseAccess, RegistryReleaseAccessResult};
+use aion_state::prelude::RegistryReleaseAccessResult;
 
-use crate::prelude::{AccessResult, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseProgram, ResourceAccess, ResourceId, UserId, UserPassword};
+use crate::prelude::{AccessResult, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub struct CastedResource<'a, T> {
     access_result: AccessResult<'a, T>,
@@ -57,9 +57,10 @@ impl<'a, T> Drop for CastedResource<'a, T> {
                 // Safety
                 // We do not use the resources any further (in the drop)
                 unsafe {
-                    self.program.release_access(&RegistryReleaseAccess {
-                        resource_id: &self.resource_id,
-                        access: &self.resource_access
+                    self.program_registry.release_resource(&ProgramRegistryReleaseResource {
+                        program: self.program.as_ref(), 
+                        resource_id: &self.resource_id, 
+                        resource_access: &self.resource_access
                     })
                 },
                 RegistryReleaseAccessResult::Ok

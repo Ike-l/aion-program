@@ -4,7 +4,7 @@ use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplaceme
 use hecs::Entity;
 use parking_lot::lock_api::Mutex;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -93,6 +93,20 @@ impl ProgramRegistry {
         unsafe { self.programs.release_access(&RegistryReleaseAccess {
             resource_id: *program_id,
             access: &ProgramAccess::Shared(1)
+        }) }
+    }
+
+    pub(crate) unsafe fn release_resource(
+        &self,
+        ProgramRegistryReleaseResource {
+            program,
+            resource_id,
+            resource_access,
+        }: &ProgramRegistryReleaseResource<'_>
+    ) -> RegistryReleaseAccessResult {
+        unsafe { program.release_access(&RegistryReleaseAccess {
+            resource_id,
+            access: resource_access,
         }) }
     }
 

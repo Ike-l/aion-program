@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{RegistryReleaseAccess, RegistryReleaseAccessResult};
+use aion_state::prelude::RegistryReleaseAccessResult;
 
-use crate::prelude::{AccessResult, CastedResource, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseProgram, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
+use crate::prelude::{AccessResult, CastedResource, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub mod casted_resource;
 
@@ -93,9 +93,10 @@ impl Drop for ResolvedResource<'_> {
                 // Safety
                 // We do not use the resources any further (in the drop)
                 unsafe {
-                    self.program.as_ref().unwrap().release_access(&RegistryReleaseAccess {
-                        resource_id: self.resource_id.as_ref().unwrap(),
-                        access: self.resource_access.as_ref().unwrap()
+                    self.program_registry.as_ref().unwrap().release_resource(&ProgramRegistryReleaseResource {
+                        program: self.program.as_ref().unwrap(), 
+                        resource_id: self.resource_id.as_ref().unwrap(), 
+                        resource_access: self.resource_access.as_ref().unwrap()
                     })
                 },
                 RegistryReleaseAccessResult::Ok
