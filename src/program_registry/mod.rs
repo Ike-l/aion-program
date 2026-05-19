@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, iter::once, sync::Arc};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
@@ -266,7 +266,10 @@ impl ProgramRegistry {
     }
 
     pub fn program_ids(&self) -> impl Iterator<Item = &ProgramId> {
-        // ensure program_ids is full of all program_ids AND the global program id
-        self.program_ids.iter()
+        self.program_ids.iter().chain(once(&self.global_program_id))
+    }
+
+    pub fn global_program_id(&self) -> &ProgramId {
+        &self.global_program_id
     }
 }
