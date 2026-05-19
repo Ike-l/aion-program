@@ -3,7 +3,7 @@ use std::{collections::HashSet, iter::once, sync::Arc};
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, DerivedResult, FinalisedAccess, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResolvedResource, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -35,84 +35,18 @@ impl ProgramRegistry {
     ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
-        let derived_results = submitted_accesses.into_iter().map(|FinalisedAccess { 
-            program_id, 
-            program_password,
-            user_details, 
-            resource_id, 
-            resource_password, 
-            resource_access 
-        }| {
-            let program_id = match program_id {
-                Some(program_id) => program_id,
-                None => self.global_program_id.clone(),
-            };
-
-            let user_details = user_details.as_ref().map(|(u, p)| (u, p));
-
-            let program_access_result = self.acquire_program(ProgramRegistryAcquireProgram { 
-                user_details, 
-                program_id: program_id.clone(), 
-                program_password: program_password.as_ref()
-            });
-
-            if let RegistryAcquireAccessResult::Found(access_result) = program_access_result {
-                let AccessResult::Shared(program) = access_result else { unreachable!() };
-                
-                let resource_access_result = program.acquire_access(RegistryAcquireAccess {
-                    user_details,
-                    resource_id: resource_id.clone(),
-                    access: resource_access.clone(),
-                    password: resource_password.as_ref()
-                });
-                
-                if let RegistryAcquireAccessResult::Found(access_result) = resource_access_result {
-                    DerivedResult::Complete(ResolvedResource::new(
-                        access_result,
-                        Arc::clone(self),
-                        Arc::clone(program),
-                        program_id,
-                        resource_access,
-                        resource_id,
-                        user_details.map(|(user_id, user_password)| (user_id.clone(), user_password.clone())),
-                    ))
-                } else {
-                    assert!(
-                        matches!(
-                            // Safety
-                            // We do not use program any further
-                            // and we do not store it
-                            unsafe {
-                                self.release_program(&ProgramRegistryReleaseProgram {
-                                    program_id: &program_id,
-                                })
-                            },
-                            RegistryReleaseAccessResult::Ok
-                        )
-                    );
-                    DerivedResult::ResourceAccessNotFound(resource_access_result)
-                }
-            } else {
-                assert!(
-                    matches!(
-                        // Safety
-                        // We do not use program any further
-                        // and we do not store it
-                        unsafe {
-                            self.release_program(&ProgramRegistryReleaseProgram {
-                                program_id: &program_id,
-                            })
-                        },
-                        RegistryReleaseAccessResult::Ok
-                    )
-                );
-
-                DerivedResult::ProgramAccessNotFound(program_access_result)
-            }
-        }).collect::<Vec<_>>();
+        let derived_results = submitted_accesses.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
 
         let resolve_result = T::resolve_access(entity, Arc::clone(self), derived_results);
         Ok(resolve_result)
+    }
+
+    pub fn resolve_async<'a, T: Injection>(
+        self: &'a Arc<Self>, 
+        entity: Option<Entity>,
+        access_builders: Vec<AccessBuilder>
+    ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
+        todo!()
     }
 
     // dont need
@@ -143,7 +77,7 @@ impl ProgramRegistry {
         }) }
     }
 
-    fn acquire_program(
+    pub(crate) fn acquire_program(
         &self,
         ProgramRegistryAcquireProgram {
             user_details,
