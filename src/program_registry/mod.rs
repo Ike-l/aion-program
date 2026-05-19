@@ -1,9 +1,10 @@
-use std::{collections::HashSet, iter::once, sync::Arc};
+use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
+use parking_lot::lock_api::Mutex;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -26,7 +27,9 @@ pub struct ProgramRegistry {
         WhitelistStorage<ProgramId, ProgramAccess>,
         BlacklistStorage<ProgramId, ProgramAccess>,
         ControlStorage<ProgramId>
-    >
+    >,
+
+    future_resources: Mutex<parking_lot::RawMutex, HashMap<(Option<ProgramId>, ResourceId), Vec<Arc<Mutex<parking_lot::RawMutex, (Option<Waker>, bool)>>>>>
 }
 
 impl ProgramRegistry {
@@ -47,30 +50,36 @@ impl ProgramRegistry {
         self: &'a Arc<Self>, 
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
-    ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve>, AccessSubmissionError> {
+    ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve<'a, T>>, AccessSubmissionError> {
         let submitted_accesses = T::submit_access(access_builders)?;
 
-        let derived_results = submitted_accesses.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
+        let derived_results = submitted_accesses.iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
 
         let resolved_result = T::resolve_access(entity, Arc::clone(self), derived_results);
 
         Ok(resolved_result.map_err(|_| {
-            FutureResolve::new()
+            let waker_ready = Arc::new(Mutex::new((None, false)));
+
+            submitted_accesses
+                .iter()
+                .map(|submitted_access| 
+                    (submitted_access.program_id.clone(), submitted_access.resource_id.clone()
+                )).for_each(|resource_handle| {
+                    self.future_resources.lock().entry(resource_handle).or_default().push(Arc::clone(&waker_ready));
+                });
+
+            FutureResolve::new(self, entity, submitted_accesses, waker_ready)
         }))
     }
 
-    // dont need
-    // pub fn check_resolve<'a, T: Injection>(
-    //     self: &'a Arc<Self>,
-    //     access_builders: Vec<AccessBuilder>
-    // ) -> bool {
-    //     // mayber a better way of doing this later?
-    //     // it literally just gets the access and then drops it immediately
-    //     // could mess up future "counters" or logging
-    //     // fuck logging bruh
-    //     // oh wait no its fine cause i can make a span saying its just checking ;)
-    //     self.resolve::<T>(access_builders).is_ok_and(|result| result.is_ok())
-    // }
+    pub(crate) fn try_resolve<'a, T: Injection>(
+        self: &'a Arc<Self>,
+        entity: Option<Entity>,
+        finalised_access_builders: Vec<FinalisedAccess>,
+    ) -> Result<<T as Injection>::Item<'a>, ResolveResourceError> {
+        let derived_results = finalised_access_builders.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
+        T::resolve_access(entity, Arc::clone(self), derived_results)
+    }
 
     /// # Safety
     /// 
