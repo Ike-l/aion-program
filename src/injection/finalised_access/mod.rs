@@ -4,6 +4,7 @@ use aion_state::prelude::{RegistryAcquireAccess, RegistryAcquireAccessResult, Re
 
 use crate::prelude::{AccessResult, DerivedResult, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
 
+#[derive(Clone)]
 pub struct FinalisedAccess {
     pub program_id: Option<ProgramId>,
     pub program_password: Option<ValuePassword>,
@@ -16,8 +17,8 @@ pub struct FinalisedAccess {
 }
 
 impl FinalisedAccess {
-    pub fn derive<'a>(self, program_registry: &'a Arc<ProgramRegistry>) -> DerivedResult<'a> {
-        let program_id = match self.program_id {
+    pub fn derive<'a>(&self, program_registry: &'a Arc<ProgramRegistry>) -> DerivedResult<'a> {
+        let program_id = match self.program_id.clone() {
             Some(program_id) => program_id,
             None => program_registry.global_program_id().clone(),
         };
@@ -46,8 +47,8 @@ impl FinalisedAccess {
                     Arc::clone(program_registry),
                     Arc::clone(program),
                     program_id,
-                    self.resource_access,
-                    self.resource_id,
+                    self.resource_access.clone(),
+                    self.resource_id.clone(),
                     user_details.map(|(user_id, user_password)| (user_id.clone(), user_password.clone())),
                 ))
             } else {
