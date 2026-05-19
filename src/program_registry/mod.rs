@@ -29,7 +29,7 @@ pub struct ProgramRegistry {
         ControlStorage<ProgramId>
     >,
 
-    future_resources: Mutex<parking_lot::RawMutex, HashMap<(Option<ProgramId>, ResourceId), Vec<Arc<Mutex<parking_lot::RawMutex, (Option<Waker>, bool)>>>>>
+    future_resources: Mutex<parking_lot::RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<parking_lot::RawMutex, (Option<Waker>, bool)>>>>>
 }
 
 impl ProgramRegistry {
@@ -60,15 +60,16 @@ impl ProgramRegistry {
         Ok(resolved_result.map_err(|_| {
             let waker_ready = Arc::new(Mutex::new((None, false)));
 
-            submitted_accesses
+            let cached_keys = submitted_accesses
                 .iter()
                 .map(|submitted_access| 
-                    (submitted_access.program_id.clone(), submitted_access.resource_id.clone()
-                )).for_each(|resource_handle| {
-                    self.future_resources.lock().entry(resource_handle).or_default().push(Arc::clone(&waker_ready));
-                });
+                    (submitted_access.program_id.clone().unwrap_or(self.global_program_id.clone()), submitted_access.resource_id.clone()
+                )).map(|resource_handle| {
+                    self.future_resources.lock().entry(resource_handle.clone()).or_default().push(Arc::clone(&waker_ready));
+                    resource_handle
+                }).collect::<Vec<_>>();
 
-            FutureResolve::new(self, entity, submitted_accesses, waker_ready)
+            FutureResolve::new(self, entity, submitted_accesses, cached_keys, waker_ready)
         }))
     }
 
@@ -96,18 +97,41 @@ impl ProgramRegistry {
         }) }
     }
 
+    /// # Safety
+    /// 
+    /// Ensure what is being released is actually released
     pub(crate) unsafe fn release_resource(
         &self,
         ProgramRegistryReleaseResource {
             program,
+            program_id,
             resource_id,
             resource_access,
         }: &ProgramRegistryReleaseResource<'_>
-    ) -> RegistryReleaseAccessResult {
-        unsafe { program.release_access(&RegistryReleaseAccess {
+    ) -> (RegistryReleaseAccessResult, RegistryReleaseAccessResult) {
+        let resource_result = unsafe { program.release_access(&RegistryReleaseAccess {
             resource_id,
             access: resource_access,
-        }) }
+        }) };
+
+        let program_result = unsafe { self.release_program(&ProgramRegistryReleaseProgram { 
+            program_id 
+        }) };
+
+        let future_resources = self.future_resources.lock();
+        if let Some(waiters) = future_resources.get(&((*program_id).clone(), (*resource_id).clone())) {
+            for waiter in waiters {
+                let mut waiter = waiter.lock();
+                
+                waiter.1 = true;
+                
+                if let Some(waker) = waiter.0.take() {
+                    waker.wake();
+                }
+            }
+        }
+
+        (resource_result, program_result)
     }
 
     pub(crate) fn acquire_program(
