@@ -256,6 +256,46 @@ impl ProgramRegistry {
         }
     }
 
+    pub async fn resolve_async_with_insert<'a, T: Injection + 'a>(
+        self: &'a Arc<Self>,
+        entity: Option<Entity>,
+        access_builders: Vec<AccessBuilder>,
+        ProgramRegistryResolveWithInsert {
+            user_details,
+            program_id,
+            program_password,
+            resource,
+            resource_id,
+            resource_password,
+        }: ProgramRegistryResolveWithInsert<'a>
+    ) -> Option<Result<Result<T::Item<'a>, FutureResolve<'a, T>>, AccessSubmissionError>> {
+        match self.resolve_async::<T>(entity, access_builders.iter().cloned().collect()) {
+            Ok(Ok(item)) => {
+                Some(Ok(Ok(item)))
+            },
+            Ok(Err(future_resolve)) => {
+                let resource_id = resource_id?;
+                let resource = resource?();
+
+                let _replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
+                    user_details, 
+                    program_id, 
+                    program_password, 
+                    resource: Some(resource), 
+                    access: &ResourceAccess::Replace, 
+                    resource_id, 
+                    resource_password
+                });
+
+                // if _replace_result was not found return future_resolve
+                // else return another Err(ReplacementResult?)
+
+                Some(Ok(Err(future_resolve)))
+            },
+            Err(access_submission_error) => Some(Err(access_submission_error)),
+        }
+    }
+
     pub fn program_ids(&self) -> impl Iterator<Item = &ProgramId> {
         self.program_ids.iter().chain(once(&self.global_program_id))
     }
