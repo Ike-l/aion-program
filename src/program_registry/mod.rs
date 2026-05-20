@@ -342,16 +342,24 @@ impl ProgramRegistry {
         self: &'a Arc<Self>,
         runtime: Option<&Runtime>
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveEitherError> {
+        self.resolve_either::<T>(runtime, vec![])
+    }
+
+    pub fn resolve_either<'a, T: Injection + 'a>(
+        self: &'a Arc<Self>,
+        runtime: Option<&Runtime>,
+        access_builders: Vec<AccessBuilder>,
+    ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveEitherError> {
         match runtime {
             Some(runtime) => {
-                match self.resolve_async::<T>(None, vec![]) {
+                match self.resolve_async::<T>(None, access_builders) {
                     Ok(Ok(item)) => Ok(item),
                     Ok(Err(future_item)) => Ok(runtime.block_on(future_item)),
                     Err(err) => Err(ProgramRegistryResolveEitherError::AsyncError(err)),
                 }
             },
             None => {
-                match self.resolve::<T>(None, vec![]) {
+                match self.resolve::<T>(None, access_builders) {
                     Ok(item) => Ok(item),
                     Err(err) => Err(ProgramRegistryResolveEitherError::SyncError(err))
                 }
@@ -364,11 +372,20 @@ impl ProgramRegistry {
         runtime: Option<&Runtime>,
         input: ProgramRegistryResolveWithInsert<'a>,
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveWithInsertEitherError> {
+        self.resolve_with_insert_either::<T>(runtime, vec![], input)
+    }
+    
+    pub fn resolve_with_insert_either<'a, T: Injection + 'a>(
+        self: &'a Arc<Self>,
+        runtime: Option<&Runtime>,
+        access_builders: Vec<AccessBuilder>,
+        input: ProgramRegistryResolveWithInsert<'a>,
+    ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveWithInsertEitherError> {
         match runtime {
             Some(runtime) => {
                 match runtime.block_on(self.resolve_async_with_insert::<T>(
                     None, 
-                    vec![],
+                    access_builders,
                     input
                 )) {
                     Ok(Ok(item)) => Ok(item),
@@ -379,7 +396,7 @@ impl ProgramRegistry {
             None => {
                 match self.resolve_with_insert::<T>(
                     None, 
-                    vec![], 
+                    access_builders, 
                     input
                 ) {
                     Ok(item) => Ok(item),
