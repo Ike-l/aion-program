@@ -47,7 +47,11 @@ pub mod prelude {
                 ProgramRegistryReleaseResource
             },
             program_registry_result::{
-                ProgramRegistryReplaceResourceError
+                ProgramRegistryReplaceResourceError,
+                ProgramRegistryResolveWithInsertError,
+                ProgramRegistryResolveError,
+                ProgramRegistryResolveAsyncError,
+                ProgramRegistryResolveAsyncWithInsertError
             },
             derived_result::{
                 DerivedResult

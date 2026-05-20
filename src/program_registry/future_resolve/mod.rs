@@ -43,7 +43,8 @@ impl<'a, T: Injection> Future for FutureResolve<'a, T> {
         waker_ready.0 = Some(cx.waker().clone());
 
         if waker_ready.1 {
-            match self.program_registry.try_resolve::<T>(self.entity, self.finalised_accesses.clone()) {
+            let derived_results = self.finalised_accesses.iter().map(|finalised_access| finalised_access.derive(self.program_registry)).collect::<Vec<_>>();
+            match T::resolve_access(self.entity, Arc::clone(&self.program_registry), derived_results) {
                 Ok(item) => return Poll::Ready(item),
                 Err(_) => {
                     waker_ready.1 = false;

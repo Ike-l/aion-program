@@ -4,7 +4,7 @@ use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplaceme
 use hecs::Entity;
 use parking_lot::lock_api::Mutex;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, AccessSubmissionError, BlacklistStorage, ControlStorage, CredentialStorage, FinalisedAccess, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveWithInsert, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -37,49 +37,57 @@ impl ProgramRegistry {
         self: &'a Arc<Self>, 
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
-    ) -> Result<Result<<T as Injection>::Item<'a>, ResolveResourceError>, AccessSubmissionError> {
-        let submitted_accesses = T::submit_access(access_builders)?;
+    ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveError> {
+        let submitted_accesses = T::submit_access(access_builders)
+            .map_err(|err| ProgramRegistryResolveError::AccessSubmissionError(err))?;
 
-        let derived_results = submitted_accesses.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
+        let derived_results = submitted_accesses
+            .into_iter()
+            .map(|finalised_access| finalised_access.derive(self))
+            .collect::<Vec<_>>();
 
-        let resolve_result = T::resolve_access(entity, Arc::clone(self), derived_results);
-        Ok(resolve_result)
+        Ok(
+            T::resolve_access(entity, Arc::clone(self), derived_results)
+            .map_err(|err| ProgramRegistryResolveError::ResolveResourceError(err))?
+        )
     }
 
     pub fn resolve_async<'a, T: Injection>(
         self: &'a Arc<Self>, 
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
-    ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve<'a, T>>, AccessSubmissionError> {
-        let submitted_accesses = T::submit_access(access_builders)?;
+    ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve<'a, T>>, ProgramRegistryResolveAsyncError> {
+        let submitted_accesses = T::submit_access(access_builders)
+            .map_err(|err| ProgramRegistryResolveAsyncError::AccessSubmissionError(err))?;
 
         let derived_results = submitted_accesses.iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
 
         let resolved_result = T::resolve_access(entity, Arc::clone(self), derived_results);
 
-        Ok(resolved_result.map_err(|_| {
-            let waker_ready = Arc::new(Mutex::new((None, false)));
+        match resolved_result {
+            Ok(item) => Ok(Ok(item)),
+            Err(ResolveResourceError::Casting) |
+            Err(ResolveResourceError::Resolving) => {
+                let waker_ready = Arc::new(Mutex::new((None, false)));
 
-            let cached_keys = submitted_accesses
-                .iter()
-                .map(|submitted_access| 
-                    (submitted_access.program_id.clone().unwrap_or(self.global_program_id.clone()), submitted_access.resource_id.clone()
-                )).map(|resource_handle| {
-                    self.future_resources.lock().entry(resource_handle.clone()).or_default().push(Arc::clone(&waker_ready));
-                    resource_handle
-                }).collect::<Vec<_>>();
+                let cached_keys = submitted_accesses
+                    .iter()
+                    .map(|submitted_access| 
+                        (submitted_access.program_id.clone().unwrap_or(self.global_program_id.clone()), submitted_access.resource_id.clone()
+                    )).map(|resource_handle| {
+                        self.future_resources.lock().entry(resource_handle.clone()).or_default().push(Arc::clone(&waker_ready));
+                        resource_handle
+                    }).collect::<Vec<_>>();
 
-            FutureResolve::new(self, entity, submitted_accesses, cached_keys, waker_ready)
-        }))
-    }
-
-    pub(crate) fn try_resolve<'a, T: Injection>(
-        self: &'a Arc<Self>,
-        entity: Option<Entity>,
-        finalised_access_builders: Vec<FinalisedAccess>,
-    ) -> Result<<T as Injection>::Item<'a>, ResolveResourceError> {
-        let derived_results = finalised_access_builders.into_iter().map(|finalised_access| finalised_access.derive(self)).collect::<Vec<_>>();
-        T::resolve_access(entity, Arc::clone(self), derived_results)
+                Ok(Err(FutureResolve::new(self, entity, submitted_accesses, cached_keys, waker_ready)))
+            },
+            Err(ResolveResourceError::TooManyResults) => {
+                Err(ProgramRegistryResolveAsyncError::ResolvingTooManyResults)
+            },
+            Err(ResolveResourceError::NotEnoughResults) => {
+                Err(ProgramRegistryResolveAsyncError::ResolvingNotEnoughResults)
+            }
+        }
     }
 
     /// # Safety
@@ -218,41 +226,59 @@ impl ProgramRegistry {
             resource_id,
             resource_password,
         }: ProgramRegistryResolveWithInsert
-    ) -> Option<Result<Result<Result<T::Item<'a>, ProgramRegistryReplaceResourceError>, ResolveResourceError>, AccessSubmissionError>> {
-        match self.resolve::<T>(entity, access_builders.iter().cloned().collect()) {
-            Ok(Ok(result)) => {
-                Some(Ok(Ok(Ok(result))))
+    ) -> Result<T::Item<'a>, ProgramRegistryResolveWithInsertError> {
+        match self.resolve::<T>(entity, access_builders.clone()) {
+            Ok(result) => {
+                Ok(result)
             },
-            Ok(Err(resolve_resource_error)) => {
-                if resolve_resource_error == ResolveResourceError::Resolving {
-                    let resource_id = resource_id?;
-                    let resource = resource?();
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Resolving)) |
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Casting)) => {
+                let resource_id = resource_id.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResourceId)?;
+                let resource = resource.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResource)?();
 
-                    let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
-                        user_details, 
-                        program_id, 
-                        program_password, 
-                        resource: Some(resource), 
-                        access: &ResourceAccess::Replace, 
-                        resource_id, 
-                        resource_password
-                    });
+                let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
+                    user_details, 
+                    program_id, 
+                    program_password, 
+                    resource: Some(resource), 
+                    access: &ResourceAccess::Replace, 
+                    resource_id, 
+                    resource_password
+                });
 
-                    match replace_result {
-                        Ok(_) => {
-                            match self.resolve::<T>(entity, access_builders) {
-                                Ok(Ok(result)) => Some(Ok(Ok(Ok(result)))),
-                                Ok(Err(_)) => unreachable!("Replacing makes this unreachable"),
-                                Err(access_submission_error) => Some(Err(access_submission_error)),
-                            }
-                        },
-                        Err(replace_error) => Some(Ok(Ok(Err(replace_error)))),
-                    }
-                } else {
-                    Some(Ok(Err(resolve_resource_error)))
+                match replace_result {
+                    Ok(RegistrySaferReplacementResult::Found(_)) => unreachable!("If there was a resource which could be taken it would have passed the first `resolve`"),
+                    Err(ProgramRegistryReplaceResourceError::NotFound) |
+                    Ok(RegistrySaferReplacementResult::NotFound) => {
+                        match self.resolve::<T>(entity, access_builders) {
+                            Ok(result) => Ok(result),
+                            Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => {
+                                // only reachable if something changes between the first and last resolve
+                                // so can almost assume unreachable!
+                                Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
+                            },
+                            Err(ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error)) => Err(ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error)),
+                        }
+                    },
+                    Ok(RegistrySaferReplacementResult::NoOp) | 
+                    Ok(RegistrySaferReplacementResult::DeniedAccess) => Err(ProgramRegistryResolveWithInsertError::IncompatibleReplacementAccess),
+                    Err(ProgramRegistryReplaceResourceError::AccessConflict) |
+                    Err(ProgramRegistryReplaceResourceError::ReservationConflict) |
+                    Ok(RegistrySaferReplacementResult::ReservationConflict) |
+                    Ok(RegistrySaferReplacementResult::AccessConflict) => Err(ProgramRegistryResolveWithInsertError::AccessConflict),
+                    Err(ProgramRegistryReplaceResourceError::VerificationFailure) |
+                    Ok(RegistrySaferReplacementResult::VerificationFailure) => Err(ProgramRegistryResolveWithInsertError::VerificationFailure),
+                    Err(ProgramRegistryReplaceResourceError::OwnershipDenied) |
+                    Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedOwnership),
+                    Err(ProgramRegistryReplaceResourceError::WhitelistDenied) |
+                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist),
+                    Err(ProgramRegistryReplaceResourceError::BlacklistDenied) |
+                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist),
                 }
             },
-            Err(access_submission_error) => Some(Err(access_submission_error)),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults)) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults)) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults),
+            Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
         }
     }
 
@@ -268,16 +294,16 @@ impl ProgramRegistry {
             resource_id,
             resource_password,
         }: ProgramRegistryResolveWithInsert<'a>
-    ) -> Option<Result<Result<T::Item<'a>, FutureResolve<'a, T>>, AccessSubmissionError>> {
+    ) -> Result<Result<T::Item<'a>, FutureResolve<'a, T>>, ProgramRegistryResolveAsyncWithInsertError> {
         match self.resolve_async::<T>(entity, access_builders.iter().cloned().collect()) {
             Ok(Ok(item)) => {
-                Some(Ok(Ok(item)))
+                Ok(Ok(item))
             },
             Ok(Err(future_resolve)) => {
-                let resource_id = resource_id?;
-                let resource = resource?();
+                let resource_id = resource_id.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResourceId)?;
+                let resource = resource.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResource)?();
 
-                let _replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
+                let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
                     user_details, 
                     program_id, 
                     program_password, 
@@ -287,12 +313,27 @@ impl ProgramRegistry {
                     resource_password
                 });
 
-                // if _replace_result was not found return future_resolve
-                // else return another Err(ReplacementResult?)
-
-                Some(Ok(Err(future_resolve)))
+                match replace_result {
+                    Ok(RegistrySaferReplacementResult::Found(_)) |
+                    Err(ProgramRegistryReplaceResourceError::NotFound) |
+                    Ok(RegistrySaferReplacementResult::NotFound) |
+                    Err(ProgramRegistryReplaceResourceError::ReservationConflict) |
+                    Ok(RegistrySaferReplacementResult::ReservationConflict) |
+                    Err(ProgramRegistryReplaceResourceError::AccessConflict) |
+                    Ok(RegistrySaferReplacementResult::AccessConflict) => Ok(Err(future_resolve)),
+                    Ok(RegistrySaferReplacementResult::DeniedAccess) |
+                    Ok(RegistrySaferReplacementResult::NoOp) => Err(ProgramRegistryResolveAsyncWithInsertError::IncompatibleReplacementAccess),
+                    Err(ProgramRegistryReplaceResourceError::VerificationFailure) |
+                    Ok(RegistrySaferReplacementResult::VerificationFailure) => Err(ProgramRegistryResolveAsyncWithInsertError::VerificationFailure),
+                    Err(ProgramRegistryReplaceResourceError::OwnershipDenied) |
+                    Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership),
+                    Err(ProgramRegistryReplaceResourceError::BlacklistDenied) |
+                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist),
+                    Err(ProgramRegistryReplaceResourceError::WhitelistDenied) |
+                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist),
+                }
             },
-            Err(access_submission_error) => Some(Err(access_submission_error)),
+            Err(program_registry_resolve_async_error) => Err(ProgramRegistryResolveAsyncWithInsertError::ProgramRegistryResolveAsyncError(program_registry_resolve_async_error)),
         }
     }
 
