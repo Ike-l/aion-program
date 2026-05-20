@@ -46,3 +46,8 @@ pub enum ProgramRegistryResolveAsyncWithInsertError {
     ExpectedWhitelist,
     ProgramRegistryResolveAsyncError(ProgramRegistryResolveAsyncError),
 }
+
+pub enum ProgramRegistryResolveEitherError {
+    SyncError(ProgramRegistryResolveError),
+    AsyncError(ProgramRegistryResolveAsyncError)
+}

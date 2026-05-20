@@ -3,8 +3,9 @@ use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
 use parking_lot::lock_api::Mutex;
+use tokio::runtime::Runtime;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -334,6 +335,27 @@ impl ProgramRegistry {
                 }
             },
             Err(program_registry_resolve_async_error) => Err(ProgramRegistryResolveAsyncWithInsertError::ProgramRegistryResolveAsyncError(program_registry_resolve_async_error)),
+        }
+    }
+
+    pub fn resolve_simple_either<'a, T: Injection + 'a>(
+        self: &'a Arc<Self>,
+        runtime: Option<&Runtime>
+    ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveEitherError> {
+        match runtime {
+            Some(runtime) => {
+                match self.resolve_async::<T>(None, vec![]) {
+                    Ok(Ok(item)) => Ok(item),
+                    Ok(Err(future_item)) => Ok(runtime.block_on(future_item)),
+                    Err(err) => Err(ProgramRegistryResolveEitherError::AsyncError(err)),
+                }
+            },
+            None => {
+                match self.resolve::<T>(None, vec![]) {
+                    Ok(item) => Ok(item),
+                    Err(err) => Err(ProgramRegistryResolveEitherError::SyncError(err))
+                }
+            },
         }
     }
 
