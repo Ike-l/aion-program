@@ -5,7 +5,7 @@ use hecs::Entity;
 use parking_lot::lock_api::Mutex;
 use tokio::runtime::Runtime;
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
 
 pub mod program_id;
 pub mod stored_program;
@@ -354,6 +354,36 @@ impl ProgramRegistry {
                 match self.resolve::<T>(None, vec![]) {
                     Ok(item) => Ok(item),
                     Err(err) => Err(ProgramRegistryResolveEitherError::SyncError(err))
+                }
+            },
+        }
+    }
+
+    pub fn resolve_with_insert_simple_either<'a, T: Injection + 'a>(
+        self: &'a Arc<Self>,
+        runtime: Option<&Runtime>,
+        input: ProgramRegistryResolveWithInsert<'a>,
+    ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveWithInsertEitherError> {
+        match runtime {
+            Some(runtime) => {
+                match runtime.block_on(self.resolve_async_with_insert::<T>(
+                    None, 
+                    vec![],
+                    input
+                )) {
+                    Ok(Ok(item)) => Ok(item),
+                    Ok(Err(future_item)) => Ok(runtime.block_on(future_item)),
+                    Err(err) => Err(ProgramRegistryResolveWithInsertEitherError::AsyncError(err)),
+                }
+            },
+            None => {
+                match self.resolve_with_insert::<T>(
+                    None, 
+                    vec![], 
+                    input
+                ) {
+                    Ok(item) => Ok(item),
+                    Err(err) => Err(ProgramRegistryResolveWithInsertEitherError::SyncError(err))
                 }
             },
         }

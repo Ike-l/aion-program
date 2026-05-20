@@ -53,6 +53,7 @@ pub mod prelude {
                 ProgramRegistryResolveAsyncError,
                 ProgramRegistryResolveAsyncWithInsertError,
                 ProgramRegistryResolveEitherError,
+                ProgramRegistryResolveWithInsertEitherError,
             },
             derived_result::{
                 DerivedResult

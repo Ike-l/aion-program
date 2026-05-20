@@ -51,3 +51,8 @@ pub enum ProgramRegistryResolveEitherError {
     SyncError(ProgramRegistryResolveError),
     AsyncError(ProgramRegistryResolveAsyncError)
 }
+
+pub enum ProgramRegistryResolveWithInsertEitherError {
+    SyncError(ProgramRegistryResolveWithInsertError),
+    AsyncError(ProgramRegistryResolveAsyncWithInsertError)
+}
