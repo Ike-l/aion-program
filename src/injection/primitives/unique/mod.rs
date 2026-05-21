@@ -62,11 +62,11 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
             return Err(ResolveResourceError::NotEnoughResults)
         }
 
-        let derived_result = derived_results.pop().unwrap();
+        let derived_result = derived_results.remove(0);
 
         let resolved_resource: ResolvedResource = derived_result.try_into()?;
-        let casted_resource = resolved_resource.cast::<T>().map_err(|_| ResolveResourceError::Casting)?;
+        let resource = resolved_resource.cast::<T>().map_err(|_| ResolveResourceError::Casting)?;
 
-        Ok(Unique { resource: casted_resource })
+        Ok(Unique { resource })
     }
 }
