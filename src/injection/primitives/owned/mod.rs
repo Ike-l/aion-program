@@ -2,9 +2,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use hecs::Entity;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError};
-
-use crate::prelude::Shared;
+use crate::prelude::{Shared, AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError};
 
 pub struct Owned<F, O> {
     pub resource: O,
