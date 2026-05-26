@@ -1,4 +1,4 @@
-use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
+use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
 
 #[derive(Debug, Clone, Default)]
 pub struct AccessBuilder {
@@ -21,6 +21,8 @@ impl AccessBuilder {
     /// 
     /// If `ProgramId` is None then will use the global program id
     pub fn build(self) -> Option<FinalisedAccess> {
+        trace_function!("AccessBuilder build");
+
         let Some(resource_id) = self.resource_id else { return None };
         let Some(resource_access) = self.resource_access else { return None };
 
