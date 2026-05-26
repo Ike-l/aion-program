@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
-use parking_lot::lock_api::Mutex;
+use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
 
 use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
@@ -30,7 +30,7 @@ pub struct ProgramRegistry {
         ControlStorage<ProgramId>
     >,
 
-    future_resources: Mutex<parking_lot::RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<parking_lot::RawMutex, (Option<Waker>, bool)>>>>>
+    future_resources: Mutex<RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<RawMutex, (Option<Waker>, bool)>>>>>
 }
 
 impl ProgramRegistry {
