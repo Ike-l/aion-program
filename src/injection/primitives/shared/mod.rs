@@ -1,8 +1,9 @@
 use std::{any::TypeId, ops::Deref, sync::Arc};
 
 use hecs::Entity;
+use tracing::event;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedResult, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId, trace_function};
 
 pub struct Shared<'a, T> {
     resource: CastedResource<'a, T>
@@ -25,10 +26,20 @@ impl<'a, T> Deref for Shared<'a, T> {
 impl<'a, T: 'static> Injection for Shared<'a, T> {
     type Item<'new> = Shared<'new, T>;
 
-    fn claim_manual_access_builders(_access_builders: Vec<&AccessBuilder>) -> Vec<usize> { vec![] }
+    fn claim_manual_access_builders(_access_builders: Vec<&AccessBuilder>) -> Vec<usize> { 
+        trace_function!("Shared Claim Manual Access Builders");
+
+        event!(FUNCTION_LEVEL, "Claiming no access builders");
+
+        vec![] 
+    }
 
     fn submit_access(mut prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError> {
+        trace_function!("Shared Submit Access");
+
         if prompted_accesses.len() == 0 {
+            event!(FUNCTION_LEVEL, "Building default submission");
+
             return Ok(vec![
                 AccessBuilder {
                     resource_id: Some(ResourceId::TypeId(TypeId::of::<T>())),
@@ -37,6 +48,8 @@ impl<'a, T: 'static> Injection for Shared<'a, T> {
                 }.build().unwrap()
             ])
         }
+
+        event!(FUNCTION_LEVEL, "Using access builder at index 0");
 
         let mut access_builder = prompted_accesses.remove(0);
         access_builder.resource_access.replace(ResourceAccess::Shared(1));
@@ -48,10 +61,14 @@ impl<'a, T: 'static> Injection for Shared<'a, T> {
     }
 
     fn resolve_access<'new>(_entity: Option<Entity>, _program_registry: Arc<ProgramRegistry>, mut derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
+        trace_function!("Shared Resolve Access");
+
         if derived_results.len() < 1 {
             return Err(ResolveResourceError::NotEnoughResults("Requires at least 1 `derived result`".to_owned()))
         }
 
+        event!(FUNCTION_LEVEL, "Using derived result at index 0");
+        
         let derived_result = derived_results.remove(0);
 
         let resolved_resource: ResolvedResource = derived_result.try_into()?;
