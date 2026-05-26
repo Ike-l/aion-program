@@ -73,11 +73,21 @@ impl<'a, T: Injection> Future for FutureResolve<'a, T> {
 
 impl<'a, T> Drop for FutureResolve<'a, T> {
     fn drop(&mut self) {
+        let span = span!(FUNCTION_LEVEL, "FutureResolve Drop");
+        let _enter = span.enter();
+
         let mut future_resources = self.program_registry.future_resources.lock();
 
         for key in self.cached_keys.iter() {
+            let span = span!(FUNCTION_LEVEL, "For key", key =? key);
+            let _enter = span.enter();
+            
             if let Some(waiters) = future_resources.get_mut(key) {
+                event!(FUNCTION_LEVEL, waiters_len =? waiters.len(), "Waiters len before");
+
                 waiters.retain(|w| !Arc::ptr_eq(w, &self.waker_ready));
+                
+                event!(FUNCTION_LEVEL, waiters_len =? waiters.len(), "Waiters len after");
             }
         }
     }
