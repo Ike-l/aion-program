@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
+use aion_state::prelude::{ReceptionGetAccess, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult, RegistrySaferReplacement, RegistrySaferReplacementResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
@@ -519,5 +519,14 @@ impl ProgramRegistry {
 
     pub fn global_program_id(&self) -> &ProgramId {
         &self.global_program_id
+    }
+
+    pub fn get_program_access(&self, program_id: Option<&ProgramId>) -> Option<ProgramAccess> {
+        let program_id = match program_id {
+            Some(program_id) => program_id,
+            None => &self.global_program_id,
+        };
+
+        self.programs.get_access(&ReceptionGetAccess { access_id: program_id })
     }
 }

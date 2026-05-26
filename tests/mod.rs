@@ -1,8 +1,8 @@
 use std::{any::TypeId, sync::Arc};
 
-use aion_program::prelude::{ProgramRegistry, ProgramRegistryResolveWithInsert, Resource, ResourceId, Shared};
+use aion_program::prelude::{ProgramRegistry, ProgramRegistryResolveWithInsert, Resource, ResourceId, Shared, ProgramAccess};
 
-use tracing::span;
+use tracing::{span, event, Level};
 use tracing_subscriber::{EnvFilter, fmt};
 use std::sync::Once;
 
@@ -49,6 +49,20 @@ fn foo() {
         Ok(item) => {
             assert!(item.as_ref());
             drop(item);
+            let access = program_registry.get_program_access(None);
+            match access {
+                Some(program_access) => {
+                    event!(Level::INFO, %program_access, "program access");
+
+                    match program_access {
+                        ProgramAccess::Shared(0) => (),
+                        _ => panic!("Expected shared to 0")
+                    }
+                },
+                None => {
+                    unreachable!()
+                }
+            }
         },
         Err(err) => panic!("{err}"),
     }

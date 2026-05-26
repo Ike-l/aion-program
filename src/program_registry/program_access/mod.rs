@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use tracing::{Level, event};
 
@@ -10,6 +10,15 @@ use aion_state::prelude::Accessor;
 pub enum ProgramAccess {
     Shared(usize),
     Replace,
+}
+
+impl Display for ProgramAccess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProgramAccess::Shared(number) => write!(f, "Shared with {number}"),
+            ProgramAccess::Replace => write!(f, "Replace"),
+        }
+    }
 }
 
 impl ProgramAccess {
