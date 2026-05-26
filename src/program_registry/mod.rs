@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
+use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
