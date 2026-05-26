@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use aion_state::prelude::RegistryReleaseAccessResult;
-use tracing::span;
+use tracing::{event, span};
 
 use crate::prelude::{AccessResult, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
 
@@ -16,7 +16,9 @@ pub struct ResolvedResource<'a> {
 
     resource_access: Option<ResourceAccess>,
     resource_id: Option<ResourceId>,
-    user_details: Option<(UserId, UserPassword)>
+    user_details: Option<(UserId, UserPassword)>,
+
+    used: bool,
 }
 
 impl<'a> ResolvedResource<'a> {
@@ -36,7 +38,8 @@ impl<'a> ResolvedResource<'a> {
             program_id: Some(program_id),
             resource_access: Some(resource_access),
             resource_id: Some(resource_id),
-            user_details
+            user_details,
+            used: false,
         }
     }
 
@@ -58,6 +61,8 @@ impl<'a> ResolvedResource<'a> {
         ResourceId,
         Option<(UserId, UserPassword)>
     )> {
+        self.used = true;
+
         Some((
             self.access_result.take()?,
             self.program_registry.take()?,
@@ -97,6 +102,12 @@ impl Drop for ResolvedResource<'_> {
             resource_access =? self.resource_access,
         );
         let _enter = span.enter();
+
+        if self.used {
+            event!(FUNCTION_LEVEL, "Used");
+
+            return;
+        }
 
         assert!(
             matches!(
