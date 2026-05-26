@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use aion_state::prelude::RegistryReleaseAccessResult;
+use tracing::span;
 
-use crate::prelude::{AccessResult, CastedResource, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
+use crate::prelude::{AccessResult, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub mod casted_resource;
 
@@ -88,6 +89,15 @@ impl<'a> ResolvedResource<'a> {
 
 impl Drop for ResolvedResource<'_> {
     fn drop(&mut self) {
+        let span = span!(
+            FUNCTION_LEVEL, 
+            "ResolvedResource Drop",
+            program_id =? self.program_id,
+            resource_id =? self.resource_id,
+            resource_access =? self.resource_access,
+        );
+        let _enter = span.enter();
+
         assert!(
             matches!(
                 // Safety
