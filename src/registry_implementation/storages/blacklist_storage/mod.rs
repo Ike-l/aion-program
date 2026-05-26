@@ -1,7 +1,7 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use rand::{Rng, rngs::ThreadRng};
-use tracing::{Level, event};
+use tracing::{Level, event, span};
 
 use crate::prelude::ValuePassword;
 
@@ -24,7 +24,7 @@ impl<ValueId, Access> BlacklistStorage<ValueId, Access> {
 
 impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage<ValueId, Access>
     where 
-        ValueId: Eq + Hash,
+        ValueId: Eq + Hash + Debug,
         Access: PartialEq,
 {
     type Id = ValueId;
@@ -39,8 +39,15 @@ impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage
     ) -> bool {
         event!(Level::TRACE, "Blacklist check access");
 
-        let Some(allowed_accesses) = self.inner.get(id) else { return false };
-        allowed_accesses.iter().any(|(allowed_access, access_password)| allowed_access == access && access_password == password)
+        let Some(allowed_accesses) = self.inner.get(id) else { 
+            event!(Level::TRACE, "No Id Found");
+
+            return false 
+        };
+
+        allowed_accesses.iter().any(|(allowed_access, access_password)| {
+            allowed_access == access && access_password == password
+        })
     }
 
     fn allow(
@@ -64,9 +71,17 @@ impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage
     ) -> bool {
         event!(Level::TRACE, "Blacklist unallow");
 
-        let Some(allowed_accesses) = self.inner.get_mut(id) else { return false };
+        let Some(allowed_accesses) = self.inner.get_mut(id) else { 
+            event!(Level::TRACE, "No Id Found");
 
-        let Some(position) = allowed_accesses.iter().position(|(allowed_access, _)| allowed_access == access) else { return false };
+            return false 
+        };
+
+        let Some(position) = allowed_accesses.iter().position(|(allowed_access, _)| allowed_access == access) else { 
+            event!(Level::TRACE, "Access Does not Match an Allowed Access");
+
+            return false 
+        };
 
         allowed_accesses.remove(position);
 
@@ -88,6 +103,11 @@ impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage
     ) -> bool where <Self as aion_state::prelude::BlacklistStorage>::Id: 'a {
         event!(Level::TRACE, "Blacklist release all");
 
-        !ids.any(|resource_id| !self.release(resource_id))
+        !ids.any(|resource_id| {
+            let span = span!(Level::TRACE, "Releasing", resource_id =? resource_id);
+            let _enter = span.enter();
+            
+            !self.release(resource_id)
+        })
     }
 }
