@@ -357,6 +357,8 @@ impl ProgramRegistry {
             resource_password,
         }: ProgramRegistryResolveWithInsert<'a>
     ) -> Result<Result<T::Item<'a>, FutureResolve<'a, T>>, ProgramRegistryResolveAsyncWithInsertError> {
+        trace_function!("Program Registry Resolve Async With Insert");
+
         match self.resolve_async::<T>(entity, access_builders.iter().cloned().collect()) {
             Ok(Ok(item)) => {
                 Ok(Ok(item))
@@ -365,12 +367,17 @@ impl ProgramRegistry {
                 let resource_id = resource_id.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResourceId)?;
                 let resource = resource.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResource)?();
 
+                let access = ResourceAccess::Replace;
+
+                let span = span!(FUNCTION_LEVEL, "Got Future Resolve", access =? access);
+                let _enter = span.enter();
+
                 let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
                     user_details, 
                     program_id, 
                     program_password, 
                     resource: Some(resource), 
-                    access: &ResourceAccess::Replace, 
+                    access: &access,
                     resource_id, 
                     resource_password
                 });
