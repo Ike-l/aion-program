@@ -7,7 +7,7 @@ pub mod program_registry;
 pub mod registry_implementation;
 
 pub mod prelude {
-    pub const FUNCTION_LEVEL: tracing::Level = tracing::Level::DEBUG;
+    pub(crate) const FUNCTION_LEVEL: tracing::Level = tracing::Level::DEBUG;
 
     macro_rules! trace_function {
         ($log:literal) => {

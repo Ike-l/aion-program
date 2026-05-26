@@ -169,10 +169,15 @@ impl ProgramRegistry {
             program_password
         }: ProgramRegistryAcquireProgram
     ) -> RegistryAcquireAccessResult<AccessResult<'_, StoredProgram>>{
+        let access = ProgramAccess::Shared(1);
+
+        let span = span!(FUNCTION_LEVEL, "ProgramRegistry Acquire Program", access =? access);
+        let _enter = span.enter();
+
         self.programs.acquire_access(RegistryAcquireAccess {
             user_details: user_details,
             resource_id: program_id,
-            access: ProgramAccess::Shared(1),
+            access,
             password: program_password,
         })
     }
