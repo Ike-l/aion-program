@@ -445,6 +445,9 @@ impl ProgramRegistry {
         runtime: Option<&Runtime>,
         input: ProgramRegistryResolveWithInsert<'a>,
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveWithInsertEitherError> {
+        let span = span!(FUNCTION_LEVEL, "ProgramRegistry Resolve With Insert Simple Either", access_builders =? "Empty");
+        let _enter = span.enter();
+
         self.resolve_with_insert_either::<T>(runtime, vec![], input)
     }
     
@@ -454,6 +457,8 @@ impl ProgramRegistry {
         access_builders: Vec<AccessBuilder>,
         input: ProgramRegistryResolveWithInsert<'a>,
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveWithInsertEitherError> {
+        trace_function!("Program Registry Resolve With Insert Either");
+
         match runtime {
             Some(runtime) => {
                 match runtime.block_on(self.resolve_async_with_insert::<T>(
