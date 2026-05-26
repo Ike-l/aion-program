@@ -195,16 +195,17 @@ impl ProgramRegistry {
             resource_password,
         }: ProgramRegistryReplaceResource<'a>
     ) -> Result<RegistrySaferReplacementResult<StoredResource>, ProgramRegistryReplaceResourceError> {
+        trace_function!("ProgramRegistry ReplaceResource");
+
         let program_id = match program_id {
             Some(program_id) => program_id,
             None => self.global_program_id.clone(),
         };
 
-        match self.programs.acquire_access(RegistryAcquireAccess {
-            user_details,
-            resource_id: program_id,
-            access: ProgramAccess::Shared(1),
-            password: program_password
+        match self.acquire_program(ProgramRegistryAcquireProgram { 
+            user_details, 
+            program_id, 
+            program_password 
         }) {
             RegistryAcquireAccessResult::Found(access_result) => {
                 let program = access_result.as_ref().unwrap();
@@ -218,13 +219,41 @@ impl ProgramRegistry {
                     }
                 ))
             },
-            RegistryAcquireAccessResult::NotFound => Err(ProgramRegistryReplaceResourceError::NotFound),
-            RegistryAcquireAccessResult::AccessConflict => Err(ProgramRegistryReplaceResourceError::AccessConflict),
-            RegistryAcquireAccessResult::ReservationConflict => Err(ProgramRegistryReplaceResourceError::ReservationConflict),
-            RegistryAcquireAccessResult::VerificationFailure => Err(ProgramRegistryReplaceResourceError::VerificationFailure),
-            RegistryAcquireAccessResult::OwnershipDenied => Err(ProgramRegistryReplaceResourceError::OwnershipDenied),
-            RegistryAcquireAccessResult::WhitelistDenied => Err(ProgramRegistryReplaceResourceError::WhitelistDenied),
-            RegistryAcquireAccessResult::BlacklistDenied => Err(ProgramRegistryReplaceResourceError::BlacklistDenied),
+            RegistryAcquireAccessResult::NotFound => {
+                event!(Level::WARN, "NotFound");
+                
+                Err(ProgramRegistryReplaceResourceError::NotFound)
+            },
+            RegistryAcquireAccessResult::AccessConflict => {
+                event!(Level::WARN, "AccessConflict");
+                
+                Err(ProgramRegistryReplaceResourceError::AccessConflict)
+            },
+            RegistryAcquireAccessResult::ReservationConflict => {
+                event!(Level::WARN, "ReservationConflict");
+                
+                Err(ProgramRegistryReplaceResourceError::ReservationConflict)
+            },
+            RegistryAcquireAccessResult::VerificationFailure => {
+                event!(Level::WARN, "VerificationFailure");
+                
+                Err(ProgramRegistryReplaceResourceError::VerificationFailure)
+            },
+            RegistryAcquireAccessResult::OwnershipDenied => {
+                event!(Level::WARN, "OwnershipDenied");
+                
+                Err(ProgramRegistryReplaceResourceError::OwnershipDenied)
+            },
+            RegistryAcquireAccessResult::WhitelistDenied => {
+                event!(Level::WARN, "WhitelistDenied");
+                
+                Err(ProgramRegistryReplaceResourceError::WhitelistDenied)
+            },
+            RegistryAcquireAccessResult::BlacklistDenied => {
+                event!(Level::WARN, "BlacklistDenied");
+                
+                Err(ProgramRegistryReplaceResourceError::BlacklistDenied)
+            },
         }
     }
 
@@ -251,6 +280,8 @@ impl ProgramRegistry {
             resource_password,
         }: ProgramRegistryResolveWithInsert
     ) -> Result<T::Item<'a>, ProgramRegistryResolveWithInsertError> {
+        trace_function!("ProgramRegistry Resolve With Insert");
+
         match self.resolve::<T>(entity, access_builders.clone()) {
             Ok(result) => {
                 Ok(result)
@@ -277,6 +308,8 @@ impl ProgramRegistry {
                     Ok(RegistrySaferReplacementResult::Found(_)) => unreachable!("If there was a resource which could be taken it would have passed the first `resolve`"),
                     Err(ProgramRegistryReplaceResourceError::NotFound) |
                     Ok(RegistrySaferReplacementResult::NotFound) => {
+                        trace_function!("Replace Result is NotFound");
+
                         match self.resolve::<T>(entity, access_builders) {
                             Ok(result) => Ok(result),
                             Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => {
@@ -284,7 +317,9 @@ impl ProgramRegistry {
                                 // so can almost assume unreachable!
                                 Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
                             },
-                            Err(ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error)) => Err(ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error)),
+                            Err(ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error)) => {
+                                Err(ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error))
+                            },
                         }
                     },
                     Ok(RegistrySaferReplacementResult::NoOp) | 
@@ -303,8 +338,8 @@ impl ProgramRegistry {
                     Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist),
                 }
             },
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults),
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults(msg)),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults(msg)),
             Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
         }
     }
