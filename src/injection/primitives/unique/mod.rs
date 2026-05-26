@@ -1,8 +1,9 @@
 use std::{any::TypeId, ops::{Deref, DerefMut}, sync::Arc};
 
 use hecs::Entity;
+use tracing::event;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedResult, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId, trace_function};
 
 pub struct Unique<'a, T> {
     resource: CastedResource<'a, T>
@@ -35,10 +36,20 @@ impl<'a, T> DerefMut for Unique<'a, T> {
 impl<'a, T: 'static> Injection for Unique<'a, T> {
     type Item<'new> = Unique<'new, T>;
 
-    fn claim_manual_access_builders(_access_builders: Vec<&AccessBuilder>) -> Vec<usize> { vec![] }
+    fn claim_manual_access_builders(_access_builders: Vec<&AccessBuilder>) -> Vec<usize> { 
+        trace_function!("Unique Claim Manual Access Builders");
+
+        event!(FUNCTION_LEVEL, "Claiming no access builders");
+
+        vec![] 
+    }
 
     fn submit_access(mut prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError> {
+        trace_function!("Unique Submit Access");
+
         if prompted_accesses.len() == 0 {
+            event!(FUNCTION_LEVEL, "Building default submission");
+
             return Ok(vec![
                 AccessBuilder {
                     resource_id: Some(ResourceId::TypeId(TypeId::of::<T>())),
@@ -47,6 +58,8 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
                 }.build().unwrap()
             ])
         }
+
+        event!(FUNCTION_LEVEL, "Using access builder at index 0");
 
         let mut access_builder = prompted_accesses.remove(0);
         access_builder.resource_access.replace(ResourceAccess::Unique);
@@ -58,9 +71,13 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
     }
 
     fn resolve_access<'new>(_entity: Option<Entity>, _program_registry: Arc<ProgramRegistry>, mut derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
+        trace_function!("Unique Resolve Access");
+
         if derived_results.len() < 1 {
             return Err(ResolveResourceError::NotEnoughResults("Requires at least 1 `derived result`".to_owned()))
         }
+
+        event!(FUNCTION_LEVEL, "Using derived result at index 0");
 
         let derived_result = derived_results.remove(0);
 
