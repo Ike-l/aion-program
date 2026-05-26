@@ -20,8 +20,8 @@ pub enum ProgramRegistryResolveWithInsertError {
     ExpectedOwnership,
     ExpectedBlacklist,
     ExpectedWhitelist,
-    ResolvingNotEnoughResults,
-    ResolvingTooManyResults,
+    ResolvingNotEnoughResults(String),
+    ResolvingTooManyResults(String),
     AccessConflict,
     ReplacedResolveResourceError(ResolveResourceError),
     AccessSubmissionError(AccessSubmissionError)
@@ -36,18 +36,10 @@ impl Display for ProgramRegistryResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             ProgramRegistryResolveError::AccessSubmissionError(access_submission_error) => {
-                match access_submission_error {
-                    AccessSubmissionError::NotEnoughPrompts(msg) => format!("NotEnoughPrompts: {}", msg),
-                    AccessSubmissionError::TooManyPrompts(msg) => format!("TooManyPrompts: {}", msg),
-                }
+                format!("ProgramRegistryResolveError: {}", access_submission_error)
             },
             ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error) => {
-                match resolve_resource_error {
-                    ResolveResourceError::Casting(msg) => format!("Casting: {}", msg),
-                    ResolveResourceError::Resolving(msg) => format!("Resolving: {}", msg),
-                    ResolveResourceError::NotEnoughResults(msg) => format!("NotEnoughResults: {}", msg),
-                    ResolveResourceError::TooManyResults(msg) => format!("TooManyResults: {}", msg),
-                }
+                format!("ProgramRegistryResolveError: {}", resolve_resource_error)
             },
         };
 
