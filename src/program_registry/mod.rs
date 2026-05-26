@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
+use std::{any::TypeId, collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
 use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplacement, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult};
 use hecs::Entity;
@@ -32,6 +32,30 @@ pub struct ProgramRegistry {
     >,
 
     future_resources: Mutex<RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<RawMutex, (Option<Waker>, bool)>>>>>
+}
+
+impl Default for ProgramRegistry {
+    fn default() -> Self {
+        let global_program_id = ProgramId::TypeId(TypeId::of::<Self>());
+        let program_ids = HashSet::from_iter(once(global_program_id.clone()));
+
+        let programs = Registry::default();
+
+        assert!(matches!(programs.safer_replace(RegistrySaferReplacement {
+            user_details: None,
+            access: &ProgramAccess::Replace,
+            resource_id: global_program_id.clone(),
+            resource: Some(StoredProgram::default()),
+            password: None,
+        }), RegistrySaferReplacementResult::NotFound));
+
+        Self {
+            program_ids,
+            global_program_id,
+            programs,
+            future_resources: Mutex::new(HashMap::default())
+        }
+    }
 }
 
 impl ProgramRegistry {

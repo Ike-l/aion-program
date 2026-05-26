@@ -4,6 +4,7 @@ use tracing::{Level, event};
 
 use crate::prelude::{UserId, UserPassword};
 
+#[derive(Default)]
 pub struct CredentialStorage {
     inner: HashMap<UserId, UserPassword>
 }
