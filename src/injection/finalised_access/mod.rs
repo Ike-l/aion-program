@@ -3,7 +3,7 @@ use std::sync::Arc;
 use aion_state::prelude::{RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccessResult};
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessResult, DerivedResult, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
+use crate::prelude::{AccessResult, DerivedResult, FUNCTION_LEVEL, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
 
 #[derive(Clone)]
 pub struct FinalisedAccess {
@@ -29,7 +29,7 @@ impl FinalisedAccess {
         let user_details = self.user_details.as_ref().map(|(u, p)| (u, p));
 
         let span = span!(
-            Level::DEBUG, 
+            FUNCTION_LEVEL, 
             "Program", 
             user_id =? user_details.as_ref().map(|details| details.0), 
             program_id =? program_id, 
@@ -47,7 +47,7 @@ impl FinalisedAccess {
             RegistryAcquireAccessResult::Found(access_result) => {
                 let AccessResult::Shared(program) = access_result else { unreachable!() };
                 let span = span!(
-                    Level::DEBUG, 
+                    FUNCTION_LEVEL, 
                     "Access",
                     resource_id =? self.resource_id,
                     access =? self.resource_access,
@@ -75,7 +75,7 @@ impl FinalisedAccess {
                         ))
                     },
                     error @ _ => {
-                        event!(Level::WARN, "%error");
+                        event!(Level::WARN, "{}", error);
                         assert!(
                             matches!(
                                 // Safety
@@ -95,7 +95,7 @@ impl FinalisedAccess {
                 }
             },
             error @ _ => {
-                event!(Level::WARN, "%error");
+                event!(Level::WARN, "{}", error);
                 assert!(
                     matches!(
                         // Safety
