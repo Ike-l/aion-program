@@ -485,10 +485,14 @@ impl ProgramRegistry {
     }
 
     pub fn program_ids(&self) -> impl Iterator<Item = &ProgramId> {
+        trace_function!("ProgramRegistry Program Ids");
+
         self.program_ids.iter().chain(once(&self.global_program_id))
     }
 
     pub fn global_program_id(&self) -> &ProgramId {
+        trace_function!("ProgramRegistry Global Program Id");
+
         &self.global_program_id
     }
 }
