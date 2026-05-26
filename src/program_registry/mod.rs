@@ -4,8 +4,9 @@ use aion_state::prelude::{RegistrySaferReplacementResult, RegistrySaferReplaceme
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
+use tracing::{Level, event, span};
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
 
 pub mod program_id;
 pub mod stored_program;
@@ -39,6 +40,8 @@ impl ProgramRegistry {
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveError> {
+        trace_function!("ProgramRegistry Resolve");
+
         let submitted_accesses = T::submit_access(access_builders)
             .map_err(|err| ProgramRegistryResolveError::AccessSubmissionError(err))?;
 
@@ -58,6 +61,8 @@ impl ProgramRegistry {
         entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>
     ) -> Result<Result<<T as Injection>::Item<'a>, FutureResolve<'a, T>>, ProgramRegistryResolveAsyncError> {
+        trace_function!("ProgramRegistry Resolve Async");
+
         let submitted_accesses = T::submit_access(access_builders)
             .map_err(|err| ProgramRegistryResolveAsyncError::AccessSubmissionError(err))?;
 
@@ -67,8 +72,11 @@ impl ProgramRegistry {
 
         match resolved_result {
             Ok(item) => Ok(Ok(item)),
-            Err(ResolveResourceError::Casting) |
-            Err(ResolveResourceError::Resolving) => {
+            Err(ref error @ ResolveResourceError::Casting(ref msg)) |
+            Err(ref error @ ResolveResourceError::Resolving(ref msg)) => {
+                let span = span!(FUNCTION_LEVEL, "Resolved Error: {} with message: {}", %error, %msg);
+                let _enter = span.enter();
+
                 let waker_ready = Arc::new(Mutex::new((None, false)));
 
                 let cached_keys = submitted_accesses
@@ -82,10 +90,14 @@ impl ProgramRegistry {
 
                 Ok(Err(FutureResolve::new(self, entity, submitted_accesses, cached_keys, waker_ready)))
             },
-            Err(ResolveResourceError::TooManyResults) => {
+            Err(ResolveResourceError::TooManyResults(msg)) => {
+                event!(Level::WARN, "TooManyResults: {}", msg);
+
                 Err(ProgramRegistryResolveAsyncError::ResolvingTooManyResults)
             },
-            Err(ResolveResourceError::NotEnoughResults) => {
+            Err(ResolveResourceError::NotEnoughResults(msg)) => {
+                event!(Level::WARN, "NotEnoughResults: {}", msg);
+
                 Err(ProgramRegistryResolveAsyncError::ResolvingNotEnoughResults)
             }
         }
@@ -100,6 +112,8 @@ impl ProgramRegistry {
             program_id,
         }: &ProgramRegistryReleaseProgram
     ) -> RegistryReleaseAccessResult {
+        trace_function!("ProgramRegistry Release Program");
+
         unsafe { self.programs.release_access(&RegistryReleaseAccess {
             resource_id: *program_id,
             access: &ProgramAccess::Shared(1)
@@ -118,6 +132,8 @@ impl ProgramRegistry {
             resource_access,
         }: &ProgramRegistryReleaseResource<'_>
     ) -> (RegistryReleaseAccessResult, RegistryReleaseAccessResult) {
+        trace_function!("ProgramRegistry Release Resource");
+
         let resource_result = unsafe { program.release_access(&RegistryReleaseAccess {
             resource_id,
             access: resource_access,
@@ -129,6 +145,8 @@ impl ProgramRegistry {
 
         let future_resources = self.future_resources.lock();
         if let Some(waiters) = future_resources.get(&((*program_id).clone(), (*resource_id).clone())) {
+            event!(FUNCTION_LEVEL, waiter_len =? waiters.len(), "Waking waiters");
+            
             for waiter in waiters {
                 let mut waiter = waiter.lock();
                 
@@ -232,8 +250,11 @@ impl ProgramRegistry {
             Ok(result) => {
                 Ok(result)
             },
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Resolving)) |
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Casting)) => {
+            Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Resolving(ref msg))) |
+            Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Casting(ref msg))) => {
+                let span = span!(FUNCTION_LEVEL, "Resolved Error: {} with message: {}", %error, %msg);
+                let _enter = span.enter();
+
                 let resource_id = resource_id.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResourceId)?;
                 let resource = resource.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResource)?();
 
@@ -277,8 +298,8 @@ impl ProgramRegistry {
                     Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist),
                 }
             },
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults)) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults),
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults)) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults),
+            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults),
             Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
         }
     }
