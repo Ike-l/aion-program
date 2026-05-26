@@ -16,7 +16,8 @@ impl<'a> TryFrom<DerivedResult<'a>> for ResolvedResource<'a> {
     fn try_from(value: DerivedResult<'a>) -> Result<Self, Self::Error> {
         match value {
             DerivedResult::Complete(resolved_resource) => Ok(resolved_resource),
-            _ => Err(ResolveResourceError::Resolving)
+            DerivedResult::ResourceAccessNotFound(error) => Err(ResolveResourceError::Resolving(format!("ResourceAccessNotFound: {}", error))),
+            DerivedResult::ProgramAccessNotFound(error) => Err(ResolveResourceError::Resolving(format!("ProgramAccessNotFound: {}", error)))
         }    
     }
 }
