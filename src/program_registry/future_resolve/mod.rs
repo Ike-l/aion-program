@@ -1,8 +1,9 @@
 use std::{marker::PhantomData, pin::Pin, sync::Arc, task::{Context, Poll, Waker}};
 
 use hecs::Entity;
+use tracing::{event, span};
 
-use crate::prelude::{FinalisedAccess, Injection, ProgramId, ProgramRegistry, ResourceId};
+use crate::prelude::{FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramId, ProgramRegistry, ResourceId};
 use parking_lot::Mutex;
 
 pub struct FutureResolve<'a, T> {
@@ -42,11 +43,25 @@ impl<'a, T: Injection> Future for FutureResolve<'a, T> {
         let mut waker_ready = self.waker_ready.lock();
         waker_ready.0 = Some(cx.waker().clone());
 
+        let span = span!(
+            FUNCTION_LEVEL, 
+            "Polling FutureResolve",
+            entity =? self.entity,
+            keys =? self.cached_keys
+        );
+        let _enter = span.enter();
+
         if waker_ready.1 {
             let derived_results = self.finalised_accesses.iter().map(|finalised_access| finalised_access.derive(self.program_registry)).collect::<Vec<_>>();
             match T::resolve_access(self.entity, Arc::clone(&self.program_registry), derived_results) {
-                Ok(item) => return Poll::Ready(item),
-                Err(_) => {
+                Ok(item) => {
+                    event!(FUNCTION_LEVEL, "Ok");
+                    
+                    return Poll::Ready(item)
+                },
+                Err(error @ _) => {
+                    event!(FUNCTION_LEVEL, "ResolveResourceError: {}", error);
+
                     waker_ready.1 = false;
                 }
             }
