@@ -2,7 +2,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use hecs::Entity;
 
-use crate::prelude::{Shared, AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, Shared, trace_function};
 
 pub struct Owned<F, O> {
     pub resource: O,
@@ -14,11 +14,21 @@ impl<F: 'static, O> Injection for Owned<F, O>
 {
     type Item<'new> = Owned<F, O>;
 
-    fn claim_manual_access_builders(accesses: Vec<&AccessBuilder>) -> Vec<usize> { Shared::<F>::claim_manual_access_builders(accesses) }
+    fn claim_manual_access_builders(accesses: Vec<&AccessBuilder>) -> Vec<usize> { 
+        trace_function!("Owned Claim Manual Access Builders");
 
-    fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError> { Shared::<F>::submit_access(prompted_accesses) }
+        Shared::<F>::claim_manual_access_builders(accesses) 
+    }
+
+    fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError> { 
+        trace_function!("Owned Submit Access");
+
+        Shared::<F>::submit_access(prompted_accesses) 
+    }
 
     fn resolve_access<'new>(entity: Option<Entity>, program_registry: Arc<ProgramRegistry>, derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
+        trace_function!("Owned ResolveAccess");
+
         let result = Shared::<F>::resolve_access(entity, program_registry, derived_results)?;
 
         let resource = result.as_ref().to_owned();
