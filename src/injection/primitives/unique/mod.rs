@@ -59,13 +59,13 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
 
     fn resolve_access<'new>(_entity: Option<Entity>, _program_registry: Arc<ProgramRegistry>, mut derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
         if derived_results.len() < 1 {
-            return Err(ResolveResourceError::NotEnoughResults)
+            return Err(ResolveResourceError::NotEnoughResults("Requires at least 1 `derived result`".to_owned()))
         }
 
         let derived_result = derived_results.remove(0);
 
         let resolved_resource: ResolvedResource = derived_result.try_into()?;
-        let resource = resolved_resource.cast::<T>().map_err(|_| ResolveResourceError::Casting)?;
+        let resource = resolved_resource.cast::<T>().map_err(|_| ResolveResourceError::Casting("Casting Error".to_owned()))?;
 
         Ok(Unique { resource })
     }
