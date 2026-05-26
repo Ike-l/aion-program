@@ -7,6 +7,17 @@ pub mod program_registry;
 pub mod registry_implementation;
 
 pub mod prelude {
+    pub const FUNCTION_LEVEL: tracing::Level = tracing::Level::DEBUG;
+
+    macro_rules! trace_function {
+        ($log:literal) => {
+            let span = tracing::span!(crate::prelude::FUNCTION_LEVEL, $log);
+            let _enter = span.enter();
+        };
+    }
+
+    pub(crate) use trace_function;
+
     pub use super::{
         injection::{
             Injection,
