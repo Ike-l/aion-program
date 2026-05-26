@@ -36,7 +36,8 @@ pub struct ProgramRegistry {
 
 impl Default for ProgramRegistry {
     fn default() -> Self {
-        let global_program_id = ProgramId::TypeId(TypeId::of::<Self>());
+        let global_program_id = ProgramId::Label("Global Program Id".to_owned());
+        
         let program_ids = HashSet::from_iter(once(global_program_id.clone()));
 
         let programs = Registry::default();
@@ -180,7 +181,7 @@ impl ProgramRegistry {
                     waker.wake();
                 }
             }
-        }
+        } else { event!(FUNCTION_LEVEL, "No Futures waiting on resources") }
 
         (resource_result, program_result)
     }
@@ -228,12 +229,12 @@ impl ProgramRegistry {
 
         match self.acquire_program(ProgramRegistryAcquireProgram { 
             user_details, 
-            program_id, 
+            program_id: program_id.clone(), 
             program_password 
         }) {
             RegistryAcquireAccessResult::Found(access_result) => {
                 let program = access_result.as_ref().unwrap();
-                Ok(program.safer_replace(
+                let result = program.safer_replace(
                     RegistrySaferReplacement {
                         user_details,
                         access,
@@ -241,7 +242,11 @@ impl ProgramRegistry {
                         resource,
                         password: resource_password,
                     }
-                ))
+                );
+
+                unsafe { self.release_program(&ProgramRegistryReleaseProgram { program_id: &program_id }) };
+
+                Ok(result)
             },
             RegistryAcquireAccessResult::NotFound => {
                 event!(Level::WARN, "NotFound");
@@ -312,7 +317,7 @@ impl ProgramRegistry {
             },
             Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Resolving(ref msg))) |
             Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Casting(ref msg))) => {
-                let span = span!(FUNCTION_LEVEL, "Resolved Error: {} with message: {}", %error, %msg);
+                let span = span!(FUNCTION_LEVEL, "Resolved Error", %error, %msg);
                 let _enter = span.enter();
 
                 let resource_id = resource_id.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResourceId)?;

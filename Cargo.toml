@@ -14,3 +14,7 @@ aion-state = { path = "../aion-state" }
 hecs = "0.11.0"
 parking_lot = "0.12.5"
 tokio = { version = "1.52.3", features = ["rt"]}
+
+[dev-dependencies]
+lazy_static = "1.5.0"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
