@@ -27,6 +27,27 @@ pub enum ProgramRegistryResolveWithInsertError {
     AccessSubmissionError(AccessSubmissionError)
 }
 
+impl Display for ProgramRegistryResolveWithInsertError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ProgramRegistryResolveWithInsertError::ExpectedResourceId => "ExpectedResourceId",
+            ProgramRegistryResolveWithInsertError::ExpectedResource => "ExpectedResource",
+            ProgramRegistryResolveWithInsertError::IncompatibleReplacementAccess => "IncompatibleReplacementAccess",
+            ProgramRegistryResolveWithInsertError::VerificationFailure => "VerificationFailure",
+            ProgramRegistryResolveWithInsertError::ExpectedOwnership => "ExpectedOwnership",
+            ProgramRegistryResolveWithInsertError::ExpectedBlacklist => "ExpectedBlacklist",
+            ProgramRegistryResolveWithInsertError::ExpectedWhitelist => "ExpectedWhitelist",
+            ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults(msg) => &format!("ResolvingNotEnoughResults: {msg}"),
+            ProgramRegistryResolveWithInsertError::ResolvingTooManyResults(msg) => &format!("ResolvingTooManyResults: {msg}"),
+            ProgramRegistryResolveWithInsertError::AccessConflict => "AccessConflict",
+            ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error) => &format!("ReplacedResolveResourceError: {resolve_resource_error}"),
+            ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error) => &format!("AccessSubmissionError: {access_submission_error}"),
+        };
+
+        write!(f, "{}", s)
+    }
+}
+
 pub enum ProgramRegistryResolveError {
     AccessSubmissionError(AccessSubmissionError),
     ResolveResourceError(ResolveResourceError),
