@@ -1,4 +1,4 @@
 pub enum AccessSubmissionError {
-    NotEnoughPrompts,
-    TooManyPrompts
+    NotEnoughPrompts(String),
+    TooManyPrompts(String)
 }
