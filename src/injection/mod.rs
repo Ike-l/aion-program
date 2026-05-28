@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use hecs::Entity;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, DerivedResult, FinalisedAccess, ProgramRegistry, ResolveResourceError};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, DerivedError, FinalisedAccess, ProgramRegistry, ResolveResourceError, ResolvedResource};
 
 pub mod access_builder;
 pub mod finalised_access;
@@ -21,5 +21,5 @@ pub trait Injection {
     fn claim_manual_access_builders(accesses: Vec<&AccessBuilder>) -> Vec<usize>;
 
     fn submit_access(prompted_accesses: Vec<AccessBuilder>) -> Result<Vec<FinalisedAccess>, AccessSubmissionError>;
-    fn resolve_access<'new>(entity: Option<Entity>, program_registry: Arc<ProgramRegistry>, derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError>;
+    fn resolve_access<'new>(entity: Option<Entity>, program_registry: Arc<ProgramRegistry>, derived_results: Vec<Result<ResolvedResource<'new>, DerivedError>>) -> Result<Self::Item<'new>, ResolveResourceError>;
 }

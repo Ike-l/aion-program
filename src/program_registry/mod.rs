@@ -1,18 +1,18 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{ReceptionGetAccess, Registry, RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccess, RegistryReleaseAccessResult, RegistrySaferReplacement, RegistrySaferReplacementResult};
+use aion_state::prelude::{ReceptionGetAccess, Registry, RegistryAcquireAccess, RegistryAcquireAccessError, RegistryReleaseAccess, RegistryReleaseAccessResult, RegistrySaferReplacement, RegistrySaferReplacementResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryReplaceResourceError, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
 
 pub mod program_id;
 pub mod stored_program;
 pub mod program_access;
 pub mod resolved_resource;
-pub mod derived_result;
+pub mod derived_error;
 pub mod program_registry_input;
 pub mod program_registry_result;
 
@@ -67,18 +67,14 @@ impl ProgramRegistry {
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveError> {
         trace_function!("ProgramRegistry Resolve");
 
-        let submitted_accesses = T::submit_access(access_builders)
-            .map_err(|err| ProgramRegistryResolveError::AccessSubmissionError(err))?;
+        let submitted_accesses = T::submit_access(access_builders)?;
 
         let derived_results = submitted_accesses
             .into_iter()
             .map(|finalised_access| finalised_access.derive(self))
             .collect::<Vec<_>>();
 
-        Ok(
-            T::resolve_access(entity, Arc::clone(self), derived_results)
-            .map_err(|err| ProgramRegistryResolveError::ResolveResourceError(err))?
-        )
+        Ok(T::resolve_access(entity, Arc::clone(self), derived_results)?)
     }
 
     pub fn resolve_async<'a, T: Injection>(
@@ -95,15 +91,25 @@ impl ProgramRegistry {
 
         let resolved_result = T::resolve_access(entity, Arc::clone(self), derived_results);
 
-        match resolved_result {
-            Ok(item) => Ok(Ok(item)),
-            Err(ref error @ ResolveResourceError::Casting(ref msg)) |
-            Err(ref error @ ResolveResourceError::Resolving(ref msg)) => {
-                let span = span!(FUNCTION_LEVEL, "Resolved Error: {} with message: {}", %error, %msg);
-                let _enter = span.enter();
 
+        let err = match resolved_result {
+            Ok(item) => return Ok(Ok(item)),
+            Err(err) => err,
+        };
+
+        let span = span!(FUNCTION_LEVEL, "Resolved Error: {}", %err);
+        let _enter = span.enter();
+
+        match err {
+            ResolveResourceError::ExpectedResults { expected, found } => {
+                event!(Level::WARN, "Input is malformed so cannot try again");
+
+                Err(ProgramRegistryResolveAsyncError::ExpectedResults { expected, found })
+            },
+            ResolveResourceError::Casting(_) |
+            ResolveResourceError::Deriving(_) => {
                 let waker_ready = Arc::new(Mutex::new((None, false)));
-
+        
                 let cached_keys = submitted_accesses
                     .iter()
                     .map(|submitted_access| 
@@ -112,19 +118,9 @@ impl ProgramRegistry {
                         self.future_resources.lock().entry(resource_handle.clone()).or_default().push(Arc::clone(&waker_ready));
                         resource_handle
                     }).collect::<Vec<_>>();
-
+        
                 Ok(Err(FutureResolve::new(self, entity, submitted_accesses, cached_keys, waker_ready)))
             },
-            Err(ResolveResourceError::TooManyResults(msg)) => {
-                event!(Level::WARN, "TooManyResults: {}", msg);
-
-                Err(ProgramRegistryResolveAsyncError::ResolvingTooManyResults)
-            },
-            Err(ResolveResourceError::NotEnoughResults(msg)) => {
-                event!(Level::WARN, "NotEnoughResults: {}", msg);
-
-                Err(ProgramRegistryResolveAsyncError::ResolvingNotEnoughResults)
-            }
         }
     }
 
@@ -193,7 +189,7 @@ impl ProgramRegistry {
             program_id,
             program_password
         }: ProgramRegistryAcquireProgram
-    ) -> RegistryAcquireAccessResult<AccessResult<'_, StoredProgram>>{
+    ) -> Result<AccessResult<'_, StoredProgram>, RegistryAcquireAccessError>{
         let access = ProgramAccess::Shared(1);
 
         let span = span!(FUNCTION_LEVEL, "ProgramRegistry Acquire Program", access =? access);
@@ -219,7 +215,7 @@ impl ProgramRegistry {
             resource_id,
             resource_password,
         }: ProgramRegistryReplaceResource<'a>
-    ) -> Result<RegistrySaferReplacementResult<StoredResource>, ProgramRegistryReplaceResourceError> {
+    ) -> Result<RegistrySaferReplacementResult<StoredResource>, RegistryAcquireAccessError> {
         trace_function!("ProgramRegistry ReplaceResource");
 
         let program_id = match program_id {
@@ -232,7 +228,7 @@ impl ProgramRegistry {
             program_id: program_id.clone(), 
             program_password 
         }) {
-            RegistryAcquireAccessResult::Found(access_result) => {
+            Ok(access_result) => {
                 let program = access_result.as_ref().unwrap();
                 let result = program.safer_replace(
                     RegistrySaferReplacement {
@@ -248,41 +244,11 @@ impl ProgramRegistry {
 
                 Ok(result)
             },
-            RegistryAcquireAccessResult::NotFound => {
-                event!(Level::WARN, "NotFound");
-                
-                Err(ProgramRegistryReplaceResourceError::NotFound)
-            },
-            RegistryAcquireAccessResult::AccessConflict => {
-                event!(Level::WARN, "AccessConflict");
-                
-                Err(ProgramRegistryReplaceResourceError::AccessConflict)
-            },
-            RegistryAcquireAccessResult::ReservationConflict => {
-                event!(Level::WARN, "ReservationConflict");
-                
-                Err(ProgramRegistryReplaceResourceError::ReservationConflict)
-            },
-            RegistryAcquireAccessResult::VerificationFailure => {
-                event!(Level::WARN, "VerificationFailure");
-                
-                Err(ProgramRegistryReplaceResourceError::VerificationFailure)
-            },
-            RegistryAcquireAccessResult::OwnershipDenied => {
-                event!(Level::WARN, "OwnershipDenied");
-                
-                Err(ProgramRegistryReplaceResourceError::OwnershipDenied)
-            },
-            RegistryAcquireAccessResult::WhitelistDenied => {
-                event!(Level::WARN, "WhitelistDenied");
-                
-                Err(ProgramRegistryReplaceResourceError::WhitelistDenied)
-            },
-            RegistryAcquireAccessResult::BlacklistDenied => {
-                event!(Level::WARN, "BlacklistDenied");
-                
-                Err(ProgramRegistryReplaceResourceError::BlacklistDenied)
-            },
+            Err(err) => {
+                event!(Level::WARN, %err, "Acquiring Program");
+
+                Err(err)
+            }
         }
     }
 
@@ -311,65 +277,71 @@ impl ProgramRegistry {
     ) -> Result<T::Item<'a>, ProgramRegistryResolveWithInsertError> {
         trace_function!("ProgramRegistry Resolve With Insert");
 
-        match self.resolve::<T>(entity, access_builders.clone()) {
-            Ok(result) => {
-                Ok(result)
+        let result = self.resolve::<T>(entity, access_builders.clone());
+
+        let err = match result {
+            Ok(item) => return Ok(item),
+            Err(err) => err
+        };
+
+        event!(Level::WARN, %err, "Continuing to Insert");
+
+        match err {
+            ProgramRegistryResolveError::AccessSubmissionError(err) => {
+                return Err(err.into())
             },
-            Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Resolving(ref msg))) |
-            Err(ref error @ ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::Casting(ref msg))) => {
-                let span = span!(FUNCTION_LEVEL, "Resolved Error", %error, %msg);
-                let _enter = span.enter();
-
-                let resource_id = resource_id.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResourceId)?;
-                let resource = resource.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResource)?();
-
-                let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
-                    user_details, 
-                    program_id, 
-                    program_password, 
-                    resource: Some(resource), 
-                    access: &ResourceAccess::Replace, 
-                    resource_id, 
-                    resource_password
-                });
-
-                match replace_result {
-                    Ok(RegistrySaferReplacementResult::Found(_)) => unreachable!("If there was a resource which could be taken it would have passed the first `resolve`"),
-                    Err(ProgramRegistryReplaceResourceError::NotFound) |
-                    Ok(RegistrySaferReplacementResult::NotFound) => {
-                        trace_function!("Replace Result is NotFound");
-
-                        match self.resolve::<T>(entity, access_builders) {
-                            Ok(result) => Ok(result),
-                            Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => {
-                                // only reachable if something changes between the first and last resolve
-                                // so can almost assume unreachable!
-                                Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
-                            },
-                            Err(ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error)) => {
-                                Err(ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error))
-                            },
-                        }
+            ProgramRegistryResolveError::ResolveResourceError(err) => {
+                match err {
+                    ResolveResourceError::ExpectedResults { expected, found } => {
+                        return Err(ProgramRegistryResolveWithInsertError::ExpectedResults { expected, found })
                     },
-                    Ok(RegistrySaferReplacementResult::NoOp) | 
-                    Ok(RegistrySaferReplacementResult::DeniedAccess) => Err(ProgramRegistryResolveWithInsertError::IncompatibleReplacementAccess),
-                    Err(ProgramRegistryReplaceResourceError::AccessConflict) |
-                    Err(ProgramRegistryReplaceResourceError::ReservationConflict) |
-                    Ok(RegistrySaferReplacementResult::ReservationConflict) |
-                    Ok(RegistrySaferReplacementResult::AccessConflict) => Err(ProgramRegistryResolveWithInsertError::AccessConflict),
-                    Err(ProgramRegistryReplaceResourceError::VerificationFailure) |
-                    Ok(RegistrySaferReplacementResult::VerificationFailure) => Err(ProgramRegistryResolveWithInsertError::VerificationFailure),
-                    Err(ProgramRegistryReplaceResourceError::OwnershipDenied) |
-                    Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedOwnership),
-                    Err(ProgramRegistryReplaceResourceError::WhitelistDenied) |
-                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist),
-                    Err(ProgramRegistryReplaceResourceError::BlacklistDenied) |
-                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist),
+                    ResolveResourceError::Casting(_) |
+                    ResolveResourceError::Deriving(_) => {
+                        let resource_id = resource_id.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResourceId)?;
+                        let resource = resource.ok_or(ProgramRegistryResolveWithInsertError::ExpectedResource)?();
+        
+                        let replace_result = self.replace_resource(ProgramRegistryReplaceResource { 
+                            user_details, 
+                            program_id, 
+                            program_password, 
+                            resource: Some(resource), 
+                            access: &ResourceAccess::Replace, 
+                            resource_id, 
+                            resource_password
+                        });
+
+                        match replace_result {
+                            Ok(RegistrySaferReplacementResult::Found(_)) => unreachable!("If there was a resource which could be taken it would have passed the first `resolve`"),
+                            Ok(RegistrySaferReplacementResult::NotFound) |
+                            Err(RegistryAcquireAccessError::NotFound) => {
+                                return Ok(self.resolve::<T>(entity, access_builders)?);
+                            },
+                            Ok(RegistrySaferReplacementResult::AccessConflict) => return Err(ProgramRegistryResolveWithInsertError::AccessConflict { on_program: false }),
+                            Err(RegistryAcquireAccessError::AccessConflict) => return Err(ProgramRegistryResolveWithInsertError::AccessConflict { on_program: true }),
+
+                            Ok(RegistrySaferReplacementResult::ReservationConflict) => return Err(ProgramRegistryResolveWithInsertError::ReservationConflict { on_program: false }),
+                            Err(RegistryAcquireAccessError::ReservationConflict) => return Err(ProgramRegistryResolveWithInsertError::ReservationConflict { on_program: true }),
+
+                            Ok(RegistrySaferReplacementResult::BlacklistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist { on_program: false }),
+                            Err(RegistryAcquireAccessError::BlacklistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist { on_program: false }),
+
+                            Ok(RegistrySaferReplacementResult::WhitelistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist { on_program: false }),
+                            Err(RegistryAcquireAccessError::WhitelistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist { on_program: false }),
+
+                            Ok(RegistrySaferReplacementResult::VerificationFailure) => return Err(ProgramRegistryResolveWithInsertError::ExpectedVerified { on_program: false }),
+                            Err(RegistryAcquireAccessError::VerificationFailure) => return Err(ProgramRegistryResolveWithInsertError::ExpectedVerified { on_program: false }),
+
+                            Ok(RegistrySaferReplacementResult::OwnershipDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedOwnership { on_program: false }),
+                            Err(RegistryAcquireAccessError::OwnershipDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedOwnership { on_program: false }),
+
+                            Ok(RegistrySaferReplacementResult::NoOp) |
+                            Ok(RegistrySaferReplacementResult::DeniedAccess) => unreachable!("Hard Coded 'Replacement' access"),
+                            
+                        }
+
+                    },
                 }
-            },
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::NotEnoughResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults(msg)),
-            Err(ProgramRegistryResolveError::ResolveResourceError(ResolveResourceError::TooManyResults(msg))) => Err(ProgramRegistryResolveWithInsertError::ResolvingTooManyResults(msg)),
-            Err(ProgramRegistryResolveError::AccessSubmissionError(access_submission_error)) => Err(ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error))
+            }
         }
     }
 
@@ -413,25 +385,27 @@ impl ProgramRegistry {
 
                 match replace_result {
                     Ok(RegistrySaferReplacementResult::Found(_)) |
-                    Err(ProgramRegistryReplaceResourceError::NotFound) |
+                    Err(RegistryAcquireAccessError::NotFound) |
                     Ok(RegistrySaferReplacementResult::NotFound) |
-                    Err(ProgramRegistryReplaceResourceError::ReservationConflict) |
+                    Err(RegistryAcquireAccessError::ReservationConflict) |
                     Ok(RegistrySaferReplacementResult::ReservationConflict) |
-                    Err(ProgramRegistryReplaceResourceError::AccessConflict) |
+                    Err(RegistryAcquireAccessError::AccessConflict) |
                     Ok(RegistrySaferReplacementResult::AccessConflict) => Ok(Err(future_resolve)),
+
+                    Ok(RegistrySaferReplacementResult::VerificationFailure) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedVerified { on_program: false }),
+                    Err(RegistryAcquireAccessError::VerificationFailure) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedVerified { on_program: true }),
+                    Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership { on_program: false }),
+                    Err(RegistryAcquireAccessError::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership { on_program: true }),
+                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist { on_program: false }),
+                    Err(RegistryAcquireAccessError::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist { on_program: true }),
+                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist { on_program: false }),
+                    Err(RegistryAcquireAccessError::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist { on_program: true }),
+
                     Ok(RegistrySaferReplacementResult::DeniedAccess) |
-                    Ok(RegistrySaferReplacementResult::NoOp) => Err(ProgramRegistryResolveAsyncWithInsertError::IncompatibleReplacementAccess),
-                    Err(ProgramRegistryReplaceResourceError::VerificationFailure) |
-                    Ok(RegistrySaferReplacementResult::VerificationFailure) => Err(ProgramRegistryResolveAsyncWithInsertError::VerificationFailure),
-                    Err(ProgramRegistryReplaceResourceError::OwnershipDenied) |
-                    Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership),
-                    Err(ProgramRegistryReplaceResourceError::BlacklistDenied) |
-                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist),
-                    Err(ProgramRegistryReplaceResourceError::WhitelistDenied) |
-                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist),
+                    Ok(RegistrySaferReplacementResult::NoOp) => unreachable!("Hard Coded 'Replacement' access"),
                 }
             },
-            Err(program_registry_resolve_async_error) => Err(ProgramRegistryResolveAsyncWithInsertError::ProgramRegistryResolveAsyncError(program_registry_resolve_async_error)),
+            Err(err) => Err(err.into()),
         }
     }
 

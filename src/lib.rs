@@ -66,8 +66,8 @@ pub mod prelude {
                 ProgramRegistryResolveEitherError,
                 ProgramRegistryResolveWithInsertEitherError,
             },
-            derived_result::{
-                DerivedResult
+            derived_error::{
+                DerivedError
             },
             resolved_resource::{
                 ResolvedResource,

@@ -3,7 +3,7 @@ use std::{any::TypeId, ops::Deref, sync::Arc};
 use hecs::Entity;
 use tracing::event;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedResult, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId, trace_function};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedError, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId, trace_function};
 
 pub struct Shared<'a, T> {
     resource: CastedResource<'a, T>
@@ -60,19 +60,18 @@ impl<'a, T: 'static> Injection for Shared<'a, T> {
         Ok(vec![access_builder.build().unwrap()])
     }
 
-    fn resolve_access<'new>(_entity: Option<Entity>, _program_registry: Arc<ProgramRegistry>, mut derived_results: Vec<DerivedResult<'new>>) -> Result<Self::Item<'new>, ResolveResourceError> {
+    fn resolve_access<'new>(_entity: Option<Entity>, _program_registry: Arc<ProgramRegistry>, mut derived_results: Vec<Result<ResolvedResource<'new>, DerivedError>>) -> Result<Self::Item<'new>, ResolveResourceError> {
         trace_function!("Shared Resolve Access");
 
         if derived_results.len() < 1 {
-            return Err(ResolveResourceError::NotEnoughResults("Requires at least 1 `derived result`".to_owned()))
+            return Err(ResolveResourceError::ExpectedResults { expected: 1, found: 0 })
         }
 
         event!(FUNCTION_LEVEL, "Using derived result at index 0");
         
-        let derived_result = derived_results.remove(0);
+        let resolved_resource = derived_results.remove(0)?;
 
-        let resolved_resource: ResolvedResource = derived_result.try_into()?;
-        let resource = resolved_resource.cast::<T>().map_err(|_| ResolveResourceError::Casting("Casting Error".to_owned()))?;
+        let resource = resolved_resource.cast::<T>()?;
 
         Ok(Shared { resource })
     }

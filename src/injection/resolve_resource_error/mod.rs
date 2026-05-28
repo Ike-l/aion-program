@@ -1,22 +1,14 @@
-use std::fmt::Display;
+use crate::prelude::{CastError, DerivedError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, thiserror::Error)]
 pub enum ResolveResourceError {
-    Casting(String),
-    Resolving(String),
-    NotEnoughResults(String),
-    TooManyResults(String),
-}
-
-impl Display for ResolveResourceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            ResolveResourceError::Casting(msg) => format!("Casting: {}", msg),
-            ResolveResourceError::Resolving(msg) => format!("Resolving: {}", msg),
-            ResolveResourceError::NotEnoughResults(msg) => format!("NotEnoughResults: {}", msg),
-            ResolveResourceError::TooManyResults(msg) => format!("TooManyResults: {}", msg),
-        };
-
-        write!(f, "{}", s)
-    }
+    #[error("Expected Results: {expected}, Found: {found}")]
+    ExpectedResults {
+        expected: usize, 
+        found: usize
+    },
+    #[error("Failed to downcast: {0}")]
+    Casting(#[from] CastError),
+    #[error("Failed to derive resource: {0}")]
+    Deriving(#[from] DerivedError)
 }

@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::prelude::{AccessSubmissionError, ResolveResourceError};
 
 pub enum ProgramRegistryReplaceResourceError {
@@ -12,77 +10,67 @@ pub enum ProgramRegistryReplaceResourceError {
     BlacklistDenied,
 }
 
+#[derive(Debug, thiserror::Error)]
 pub enum ProgramRegistryResolveWithInsertError {
+    #[error("Expected ResourceId When Inserting")]
     ExpectedResourceId,
+    #[error("Expected Resource When Inserting")]
     ExpectedResource,
-    IncompatibleReplacementAccess,
-    VerificationFailure,
-    ExpectedOwnership,
-    ExpectedBlacklist,
-    ExpectedWhitelist,
-    ResolvingNotEnoughResults(String),
-    ResolvingTooManyResults(String),
-    AccessConflict,
-    ReplacedResolveResourceError(ResolveResourceError),
-    AccessSubmissionError(AccessSubmissionError)
+    #[error("Expected Blacklist, on program access: {on_program}")]
+    ExpectedBlacklist { on_program: bool },
+    #[error("Expected Whitelist, on program access: {on_program}")]
+    ExpectedWhitelist { on_program: bool },
+    #[error("Expected to be Verified, on program access: {on_program}")]
+    ExpectedVerified { on_program: bool },
+    #[error("Expected Ownership over Resource, on program access: {on_program}")]
+    ExpectedOwnership { on_program: bool },
+    #[error("Access Conflict. On program access: {on_program}")]
+    AccessConflict { on_program: bool },
+    #[error("Reservation Conflict, on program access: {on_program}")]
+    ReservationConflict { on_program: bool },
+    #[error("When Resolving: {0}")]
+    AccessSubmissionError(#[from] AccessSubmissionError),
+    #[error("Resolving Expected Results: {expected}, Found: {found}")]
+    ExpectedResults { expected: usize, found: usize },
+    #[error("After Insert got Error: {0}")]
+    ResolvingAfterInsert(#[from] ProgramRegistryResolveError)
 }
 
-impl Display for ProgramRegistryResolveWithInsertError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            ProgramRegistryResolveWithInsertError::ExpectedResourceId => "ExpectedResourceId",
-            ProgramRegistryResolveWithInsertError::ExpectedResource => "ExpectedResource",
-            ProgramRegistryResolveWithInsertError::IncompatibleReplacementAccess => "IncompatibleReplacementAccess",
-            ProgramRegistryResolveWithInsertError::VerificationFailure => "VerificationFailure",
-            ProgramRegistryResolveWithInsertError::ExpectedOwnership => "ExpectedOwnership",
-            ProgramRegistryResolveWithInsertError::ExpectedBlacklist => "ExpectedBlacklist",
-            ProgramRegistryResolveWithInsertError::ExpectedWhitelist => "ExpectedWhitelist",
-            ProgramRegistryResolveWithInsertError::ResolvingNotEnoughResults(msg) => &format!("ResolvingNotEnoughResults: {msg}"),
-            ProgramRegistryResolveWithInsertError::ResolvingTooManyResults(msg) => &format!("ResolvingTooManyResults: {msg}"),
-            ProgramRegistryResolveWithInsertError::AccessConflict => "AccessConflict",
-            ProgramRegistryResolveWithInsertError::ReplacedResolveResourceError(resolve_resource_error) => &format!("ReplacedResolveResourceError: {resolve_resource_error}"),
-            ProgramRegistryResolveWithInsertError::AccessSubmissionError(access_submission_error) => &format!("AccessSubmissionError: {access_submission_error}"),
-        };
-
-        write!(f, "{}", s)
-    }
-}
-
+#[derive(Debug, thiserror::Error)]
 pub enum ProgramRegistryResolveError {
-    AccessSubmissionError(AccessSubmissionError),
-    ResolveResourceError(ResolveResourceError),
+    #[error("When Resolving: {0}")]
+    AccessSubmissionError(#[from] AccessSubmissionError),
+    #[error("When Resolving: {0}")]
+    ResolveResourceError(#[from] ResolveResourceError),
 }
 
-impl Display for ProgramRegistryResolveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            ProgramRegistryResolveError::AccessSubmissionError(access_submission_error) => {
-                format!("ProgramRegistryResolveError: {}", access_submission_error)
-            },
-            ProgramRegistryResolveError::ResolveResourceError(resolve_resource_error) => {
-                format!("ProgramRegistryResolveError: {}", resolve_resource_error)
-            },
-        };
-
-        write!(f, "{}", s)
+#[derive(Debug, thiserror::Error)]
+pub enum ProgramRegistryResolveAsyncError {
+    #[error("Access Submission Error: {0}")]
+    AccessSubmissionError(#[from] AccessSubmissionError),
+    #[error("Resolving Expected Results: {expected}, Found: {found}")]
+    ExpectedResults {
+        expected: usize,
+        found: usize
     }
 }
 
-pub enum ProgramRegistryResolveAsyncError {
-    AccessSubmissionError(AccessSubmissionError),
-    ResolvingNotEnoughResults,
-    ResolvingTooManyResults
-}
-
+#[derive(Debug, thiserror::Error)]
 pub enum ProgramRegistryResolveAsyncWithInsertError {
+    #[error("Expected ResourceId When Inserting")]
     ExpectedResourceId,
+    #[error("Expected Resource When Inserting")]
     ExpectedResource,
-    IncompatibleReplacementAccess,
-    VerificationFailure,
-    ExpectedOwnership,
-    ExpectedBlacklist,
-    ExpectedWhitelist,
-    ProgramRegistryResolveAsyncError(ProgramRegistryResolveAsyncError),
+    #[error("Expected Blacklist, on program access: {on_program}")]
+    ExpectedBlacklist { on_program: bool },
+    #[error("Expected Whitelist, on program access: {on_program}")]
+    ExpectedWhitelist { on_program: bool },
+    #[error("Expected to be Verified, on program access: {on_program}")]
+    ExpectedVerified { on_program: bool },
+    #[error("Expected Ownership over Resource, on program access: {on_program}")]
+    ExpectedOwnership { on_program: bool },
+    #[error("When Resolving got Error: {0}")]
+    ProgramRegistryResolveAsyncError(#[from] ProgramRegistryResolveAsyncError),
 }
 
 pub enum ProgramRegistryResolveEitherError {

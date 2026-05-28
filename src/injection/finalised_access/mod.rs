@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{RegistryAcquireAccess, RegistryAcquireAccessResult, RegistryReleaseAccessResult};
+use aion_state::prelude::{RegistryAcquireAccess, RegistryReleaseAccessResult};
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessResult, DerivedResult, FUNCTION_LEVEL, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
+use crate::prelude::{AccessResult, DerivedError, FUNCTION_LEVEL, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
 
 #[derive(Clone)]
 pub struct FinalisedAccess {
@@ -18,7 +18,7 @@ pub struct FinalisedAccess {
 }
 
 impl FinalisedAccess {
-    pub fn derive<'a>(&self, program_registry: &'a Arc<ProgramRegistry>) -> DerivedResult<'a> {
+    pub fn derive<'a>(&self, program_registry: &'a Arc<ProgramRegistry>) -> Result<ResolvedResource<'a>, DerivedError> {
         trace_function!("FinalisedAccess Derive");
 
         let program_id = match self.program_id.clone() {
@@ -44,7 +44,7 @@ impl FinalisedAccess {
         });
 
         match program_access_result {
-            RegistryAcquireAccessResult::Found(access_result) => {
+            Ok(access_result) => {
                 let AccessResult::Shared(program) = access_result else { unreachable!() };
                 let span = span!(
                     FUNCTION_LEVEL, 
@@ -63,8 +63,8 @@ impl FinalisedAccess {
                 });
                 
                 match resource_access_result {
-                    RegistryAcquireAccessResult::Found(access_result) => {
-                        DerivedResult::Complete(ResolvedResource::new(
+                    Ok(access_result) => {
+                        Ok(ResolvedResource::new(
                             access_result,
                             Arc::clone(program_registry),
                             Arc::clone(program),
@@ -74,8 +74,8 @@ impl FinalisedAccess {
                             user_details.map(|(user_id, user_password)| (user_id.clone(), user_password.clone())),
                         ))
                     },
-                    error @ _ => {
-                        event!(Level::WARN, "{}", error);
+                    Err(err) => {
+                        event!(Level::WARN, "{}", err);
                         assert!(
                             matches!(
                                 // Safety
@@ -89,13 +89,12 @@ impl FinalisedAccess {
                                 RegistryReleaseAccessResult::Ok
                             )
                         );
-            
-                        DerivedResult::ResourceAccessNotFound(error)
+                        Err(DerivedError::ResourceAccessNotFound(err))
                     },
                 }
             },
-            error @ _ => {
-                event!(Level::WARN, "{}", error);
+            Err(err) => {
+                event!(Level::WARN, "{}", err);
                 assert!(
                     matches!(
                         // Safety
@@ -110,7 +109,7 @@ impl FinalisedAccess {
                     )
                 );
     
-                DerivedResult::ProgramAccessNotFound(error)
+                Err(DerivedError::ProgramAccessNotFound(err))
             }
         }
     }
