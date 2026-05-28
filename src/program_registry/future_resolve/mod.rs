@@ -3,7 +3,7 @@ use std::{marker::PhantomData, pin::Pin, sync::Arc, task::{Context, Poll, Waker}
 use hecs::Entity;
 use tracing::{event, span};
 
-use crate::prelude::{FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramId, ProgramRegistry, ResourceId};
+use crate::prelude::{FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramId, ProgramRegistry, ResolveResourceError, ResourceId};
 use parking_lot::Mutex;
 
 pub struct FutureResolve<'a, T> {
@@ -60,6 +60,8 @@ impl<'a, T: Injection> Future for FutureResolve<'a, T> {
                     return Poll::Ready(item)
                 },
                 Err(error @ _) => {
+                    assert!(!matches!(error, ResolveResourceError::ExpectedResults { .. }));
+
                     event!(FUNCTION_LEVEL, "ResolveResourceError: {}", error);
 
                     waker_ready.1 = false;
