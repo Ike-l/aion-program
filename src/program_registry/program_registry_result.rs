@@ -16,6 +16,8 @@ pub enum ProgramRegistryResolveWithInsertError {
     ExpectedResourceId,
     #[error("Expected Resource When Inserting")]
     ExpectedResource,
+    #[error("Expected an Entity")]
+    ExpectedEntity,
     #[error("Expected Blacklist, on program access: {on_program}")]
     ExpectedBlacklist { on_program: bool },
     #[error("Expected Whitelist, on program access: {on_program}")]
@@ -55,6 +57,8 @@ pub enum ProgramRegistryResolveAsyncError {
         expected: usize,
         found: usize
     },
+    #[error("Expected an Entity")]
+    ExpectedEntity,
     #[error("Unknown Error: {0}")]
     UnknownError(anyhow::Error)
 }

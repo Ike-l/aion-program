@@ -101,6 +101,11 @@ impl ProgramRegistry {
         let _enter = span.enter();
 
         match err {
+            ResolveResourceError::ExpectedEntity => {
+                event!(Level::WARN, "Injection Expected an Entity");
+
+                Err(ProgramRegistryResolveAsyncError::ExpectedEntity)
+            },
             ResolveResourceError::ExpectedResults { expected, found } => {
                 event!(Level::WARN, "Input is malformed so cannot try again");
 
@@ -298,6 +303,9 @@ impl ProgramRegistry {
             },
             ProgramRegistryResolveError::ResolveResourceError(err) => {
                 match err {
+                    ResolveResourceError::ExpectedEntity => {
+                        return Err(ProgramRegistryResolveWithInsertError::ExpectedEntity)
+                    },
                     ResolveResourceError::CanWaitUnknownError(err) |
                     ResolveResourceError::UnknownError(err) => {
                         return Err(ProgramRegistryResolveWithInsertError::UnknownError(err))

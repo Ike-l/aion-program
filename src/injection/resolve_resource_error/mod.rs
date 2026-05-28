@@ -11,6 +11,8 @@ pub enum ResolveResourceError {
     Casting(#[from] CastError),
     #[error("Failed to derive resource: {0}")]
     Deriving(#[from] DerivedError),
+    #[error("Expected an Entity")]
+    ExpectedEntity,
     #[error("Can Wait on Unknown Error: {0}")]
     CanWaitUnknownError(anyhow::Error),
     #[error("Unknown Error: {0}")]
