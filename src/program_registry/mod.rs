@@ -106,6 +106,12 @@ impl ProgramRegistry {
 
                 Err(ProgramRegistryResolveAsyncError::ExpectedResults { expected, found })
             },
+            ResolveResourceError::UnknownError(err) => {
+                event!(Level::WARN, "Unknown Error");
+
+                Err(ProgramRegistryResolveAsyncError::UnknownError(err))
+            }
+            ResolveResourceError::CanWaitUnknownError(_) |
             ResolveResourceError::Casting(_) |
             ResolveResourceError::Deriving(_) => {
                 let waker_ready = Arc::new(Mutex::new((None, false)));
@@ -292,6 +298,10 @@ impl ProgramRegistry {
             },
             ProgramRegistryResolveError::ResolveResourceError(err) => {
                 match err {
+                    ResolveResourceError::CanWaitUnknownError(err) |
+                    ResolveResourceError::UnknownError(err) => {
+                        return Err(ProgramRegistryResolveWithInsertError::UnknownError(err))
+                    }
                     ResolveResourceError::ExpectedResults { expected, found } => {
                         return Err(ProgramRegistryResolveWithInsertError::ExpectedResults { expected, found })
                     },

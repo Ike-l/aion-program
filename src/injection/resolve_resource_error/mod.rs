@@ -10,5 +10,9 @@ pub enum ResolveResourceError {
     #[error("Failed to downcast: {0}")]
     Casting(#[from] CastError),
     #[error("Failed to derive resource: {0}")]
-    Deriving(#[from] DerivedError)
+    Deriving(#[from] DerivedError),
+    #[error("Can Wait on Unknown Error: {0}")]
+    CanWaitUnknownError(anyhow::Error),
+    #[error("Unknown Error: {0}")]
+    UnknownError(anyhow::Error),
 }

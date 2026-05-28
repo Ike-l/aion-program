@@ -33,7 +33,9 @@ pub enum ProgramRegistryResolveWithInsertError {
     #[error("Resolving Expected Results: {expected}, Found: {found}")]
     ExpectedResults { expected: usize, found: usize },
     #[error("After Insert got Error: {0}")]
-    ResolvingAfterInsert(#[from] ProgramRegistryResolveError)
+    ResolvingAfterInsert(#[from] ProgramRegistryResolveError),
+    #[error("Unknown Error: {0}")]
+    UnknownError(anyhow::Error)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -52,7 +54,9 @@ pub enum ProgramRegistryResolveAsyncError {
     ExpectedResults {
         expected: usize,
         found: usize
-    }
+    },
+    #[error("Unknown Error: {0}")]
+    UnknownError(anyhow::Error)
 }
 
 #[derive(Debug, thiserror::Error)]
