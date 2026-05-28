@@ -442,26 +442,27 @@ impl ProgramRegistry {
         let span = span!(FUNCTION_LEVEL, "ProgramRegistry Resolve Simple Either", access_builders =? "Empty");
         let _enter = span.enter();
 
-        self.resolve_either::<T>(runtime, vec![])
+        self.resolve_either::<T>(runtime, None, vec![])
     }
 
     pub fn resolve_either<'a, T: Injection + 'a>(
         self: &'a Arc<Self>,
         runtime: Option<&Runtime>,
+        entity: Option<Entity>,
         access_builders: Vec<AccessBuilder>,
     ) -> Result<<T as Injection>::Item<'a>, ProgramRegistryResolveEitherError> {
         trace_function!("Program Registry Resolve Either");
 
         match runtime {
             Some(runtime) => {
-                match self.resolve_async::<T>(None, access_builders) {
+                match self.resolve_async::<T>(entity, access_builders) {
                     Ok(Ok(item)) => Ok(item),
                     Ok(Err(future_item)) => Ok(runtime.block_on(future_item)),
                     Err(err) => Err(ProgramRegistryResolveEitherError::AsyncError(err)),
                 }
             },
             None => {
-                match self.resolve::<T>(None, access_builders) {
+                match self.resolve::<T>(entity, access_builders) {
                     Ok(item) => Ok(item),
                     Err(err) => Err(ProgramRegistryResolveEitherError::SyncError(err))
                 }
