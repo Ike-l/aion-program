@@ -1,4 +1,4 @@
-use crate::prelude::Resource;
+use crate::prelude::{CastError, Resource};
 
 pub enum AccessResult<'a, T> {
     Shared(&'a T),
@@ -6,14 +6,18 @@ pub enum AccessResult<'a, T> {
 }
 
 impl<'a> AccessResult<'a, Resource> {
-    pub fn cast<Y: 'static>(self) -> Result<AccessResult<'a, Y>, Self> {
+    pub fn cast<Y: 'static>(self) -> Result<AccessResult<'a, Y>, CastError> {
         match self {
-            AccessResult::Shared(inner) => inner.as_ref().map(AccessResult::Shared).ok_or(self),
+            AccessResult::Shared(inner) => {
+                match inner.as_ref::<Y>() {
+                    Ok(resource) => Ok(AccessResult::Shared(resource)),
+                    Err(downcast_error) => Err(CastError::Shared(downcast_error)),
+                }
+            },
             AccessResult::Unique(inner) => {
-                if inner.is::<Y>() {
-                    Ok(AccessResult::Unique(inner.as_mut().unwrap()))
-                } else {
-                    Err(AccessResult::Unique(inner))
+                match inner.as_mut::<Y>() {
+                    Ok(resource) => Ok(AccessResult::Unique(resource)),
+                    Err(downcast_error) => Err(CastError::Unique(downcast_error)),
                 }
             },
         }

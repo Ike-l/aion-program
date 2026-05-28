@@ -3,9 +3,10 @@ use std::sync::Arc;
 use aion_state::prelude::RegistryReleaseAccessResult;
 use tracing::{event, span};
 
-use crate::prelude::{AccessResult, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
+use crate::prelude::{AccessResult, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
 
 pub mod casted_resource;
+pub mod cast_error;
 
 pub struct ResolvedResource<'a> {
     access_result: Option<AccessResult<'a, Resource>>,
@@ -74,7 +75,7 @@ impl<'a> ResolvedResource<'a> {
         ))
     }
 
-    pub fn cast<Y: 'static>(mut self) -> Result<CastedResource<'a, Y>, Self> {
+    pub fn cast<Y: 'static>(mut self) -> Result<CastedResource<'a, Y>, CastError> {
         let (
             access_result,
             program_registry,
@@ -85,10 +86,9 @@ impl<'a> ResolvedResource<'a> {
             user_details
         ) = self.take_all().unwrap();
 
-        match access_result.cast::<Y>() {
-            Ok(access_result) => Ok(CastedResource::new(access_result, program_registry, program, program_id, resource_access, resource_id, user_details)),
-            Err(access_result) => Err(Self::new(access_result, program_registry, program, program_id, resource_access, resource_id, user_details))
-        }
+        let cast_result = access_result.cast::<Y>()?;
+
+        Ok(CastedResource::new(cast_result, program_registry, program, program_id, resource_access, resource_id, user_details))
     }
 }
 

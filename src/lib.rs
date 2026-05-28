@@ -73,6 +73,9 @@ pub mod prelude {
                 ResolvedResource,
                 casted_resource::{
                     CastedResource
+                },
+                cast_error::{
+                    CastError
                 }
             },
             program_id::{
@@ -96,7 +99,10 @@ pub mod prelude {
                         StoredResource,
                         StoredResourceTrait,
                         resource::{
-                            Resource
+                            Resource,
+                            downcast_error::{
+                                DowncastError
+                            }
                         }
                     }
                 }
