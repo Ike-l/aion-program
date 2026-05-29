@@ -38,7 +38,7 @@ impl Accessor for ResourceAccess {
                     _ => false
                 }
             },
-            (BorrowType::Held, BorrowType::Instant) => *incoming_access != ResourceAccess::Replace,
+            (BorrowType::Held, BorrowType::Instant) => !(*incoming_access == ResourceAccess::Replace || *self == ResourceAccess::Unique),
             (BorrowType::Instant, _) => true,
         }
     }
@@ -62,6 +62,7 @@ impl Accessor for ResourceAccess {
         event!(Level::TRACE, "Access Acquire");
 
         match self {
+            ResourceAccess::Shared(0) => unreachable!(),
             ResourceAccess::Shared(_) => AccessResult::Shared(stored_value.get()),
             ResourceAccess::Unique => AccessResult::Unique(stored_value.get_mut()),
             ResourceAccess::Replace => unreachable!(),

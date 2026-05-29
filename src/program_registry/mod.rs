@@ -340,11 +340,8 @@ impl ProgramRegistry {
                             Ok(RegistrySaferReplacementResult::ReservationConflict) => return Err(ProgramRegistryResolveWithInsertError::ReservationConflict { on_program: false }),
                             Err(RegistryAcquireAccessError::ReservationConflict) => return Err(ProgramRegistryResolveWithInsertError::ReservationConflict { on_program: true }),
 
-                            Ok(RegistrySaferReplacementResult::BlacklistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist { on_program: false }),
-                            Err(RegistryAcquireAccessError::BlacklistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedBlacklist { on_program: false }),
-
-                            Ok(RegistrySaferReplacementResult::WhitelistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist { on_program: false }),
-                            Err(RegistryAcquireAccessError::WhitelistDenied) => return Err(ProgramRegistryResolveWithInsertError::ExpectedWhitelist { on_program: false }),
+                            Ok(RegistrySaferReplacementResult::ListsDenied) => return Err(ProgramRegistryResolveWithInsertError::ListsDenied { on_program: false }),
+                            Err(RegistryAcquireAccessError::ListsDenied) => return Err(ProgramRegistryResolveWithInsertError::ListsDenied { on_program: false }),
 
                             Ok(RegistrySaferReplacementResult::VerificationFailure) => return Err(ProgramRegistryResolveWithInsertError::ExpectedVerified { on_program: false }),
                             Err(RegistryAcquireAccessError::VerificationFailure) => return Err(ProgramRegistryResolveWithInsertError::ExpectedVerified { on_program: false }),
@@ -414,10 +411,8 @@ impl ProgramRegistry {
                     Err(RegistryAcquireAccessError::VerificationFailure) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedVerified { on_program: true }),
                     Ok(RegistrySaferReplacementResult::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership { on_program: false }),
                     Err(RegistryAcquireAccessError::OwnershipDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedOwnership { on_program: true }),
-                    Ok(RegistrySaferReplacementResult::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist { on_program: false }),
-                    Err(RegistryAcquireAccessError::BlacklistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedBlacklist { on_program: true }),
-                    Ok(RegistrySaferReplacementResult::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist { on_program: false }),
-                    Err(RegistryAcquireAccessError::WhitelistDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ExpectedWhitelist { on_program: true }),
+                    Ok(RegistrySaferReplacementResult::ListsDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ListsDenied { on_program: false }),
+                    Err(RegistryAcquireAccessError::ListsDenied) => Err(ProgramRegistryResolveAsyncWithInsertError::ListsDenied { on_program: true }),
 
                     Ok(RegistrySaferReplacementResult::DeniedAccess) |
                     Ok(RegistrySaferReplacementResult::NoOp) => unreachable!("Hard Coded 'Replacement' access"),

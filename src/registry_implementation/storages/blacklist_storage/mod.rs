@@ -42,7 +42,7 @@ impl<ValueId, Access> aion_state::prelude::BlacklistStorage for BlacklistStorage
         let Some(allowed_accesses) = self.inner.get(id) else { 
             event!(Level::TRACE, "No Id Found");
 
-            return true
+            return false 
         };
 
         allowed_accesses.iter().any(|(allowed_access, access_password)| {

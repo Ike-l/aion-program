@@ -26,7 +26,7 @@ impl<ValueId: Eq + Hash + Debug, Access: PartialEq> aion_state::prelude::Whiteli
         let Some(allowed_accesses) = self.inner.get(id) else { 
             event!(Level::TRACE, "No Id found");
 
-            return true
+            return false 
         };
 
         allowed_accesses.iter().any(|allowed_access| allowed_access == access)

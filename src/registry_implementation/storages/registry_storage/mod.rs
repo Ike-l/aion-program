@@ -52,4 +52,10 @@ impl<ValueId: Eq + Hash, StoredValue> aion_state::prelude::RegistryStorage for R
 
         self.inner.contains_key(value_id)
     }
+
+    fn len(&self) -> usize {
+        event!(Level::TRACE, "Registry Storage Len");
+
+        self.inner.len()
+    }
 }

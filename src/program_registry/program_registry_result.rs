@@ -18,10 +18,8 @@ pub enum ProgramRegistryResolveWithInsertError {
     ExpectedResource,
     #[error("Expected an Entity")]
     ExpectedEntity,
-    #[error("Expected Blacklist, on program access: {on_program}")]
-    ExpectedBlacklist { on_program: bool },
-    #[error("Expected Whitelist, on program access: {on_program}")]
-    ExpectedWhitelist { on_program: bool },
+    #[error("Expected Whitelist or Blacklist, on program access: {on_program}")]
+    ListsDenied { on_program: bool },
     #[error("Expected to be Verified, on program access: {on_program}")]
     ExpectedVerified { on_program: bool },
     #[error("Expected Ownership over Resource, on program access: {on_program}")]
@@ -69,10 +67,8 @@ pub enum ProgramRegistryResolveAsyncWithInsertError {
     ExpectedResourceId,
     #[error("Expected Resource When Inserting")]
     ExpectedResource,
-    #[error("Expected Blacklist, on program access: {on_program}")]
-    ExpectedBlacklist { on_program: bool },
-    #[error("Expected Whitelist, on program access: {on_program}")]
-    ExpectedWhitelist { on_program: bool },
+    #[error("Expected Whitelist or Blacklist, on program access: {on_program}")]
+    ListsDenied { on_program: bool },
     #[error("Expected to be Verified, on program access: {on_program}")]
     ExpectedVerified { on_program: bool },
     #[error("Expected Ownership over Resource, on program access: {on_program}")]
