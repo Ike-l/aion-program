@@ -53,6 +53,8 @@ impl<'a> ResolvedResource<'a> {
     }
 
     pub fn cast<Y: 'static>(mut self) -> Result<CastedResource<'a, Y>, CastError> {
+        self.used = true;
+
         let cast_result = self.access_result.take().unwrap().update(|access_result| {
             access_result.cast::<Y>()
         });
