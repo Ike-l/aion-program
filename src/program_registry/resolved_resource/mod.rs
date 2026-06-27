@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use aion_state::prelude::RegistryReleaseAccessResult;
+use aion_state::prelude::DeaccessingResult;
 use tracing::{event, span};
 
-use crate::prelude::{AccessResult, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, UserId, UserPassword};
+use crate::prelude::{AccessResult, AutoRegistry, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramAccess, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, StoredProgram, UserId, UserPassword};
 
 pub mod casted_resource;
 pub mod cast_error;
 
 pub struct ResolvedResource<'a> {
-    access_result: Option<AccessResult<'a, Resource>>,
+    access_result: Option<DeaccessingResult<AccessResult<'a, Resource>, Program>>,
     
     program_registry: Option<Arc<ProgramRegistry>>,
-    program: Option<Arc<Program>>,
+    program: Option<DeaccessingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>>,
     program_id: Option<ProgramId>,
 
     resource_access: Option<ResourceAccess>,
@@ -24,9 +24,9 @@ pub struct ResolvedResource<'a> {
 
 impl<'a> ResolvedResource<'a> {
     pub fn new(
-        access_result: AccessResult<'a, Resource>,
+        access_result: DeaccessingResult<AccessResult<'a, Resource>, Program>,
         program_registry: Arc<ProgramRegistry>,
-        program: Arc<Program>,
+        program: DeaccessingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
         program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,
@@ -48,47 +48,31 @@ impl<'a> ResolvedResource<'a> {
         &self.user_details
     }
 
-    pub fn resource_id(&self) -> &Option<ResourceId> {
-        &self.resource_id
-    }
-
-    // NEVER MAKE PUBLIC
-    fn take_all(&mut self) -> Option<(
-        AccessResult<'a, Resource>,
-        Arc<ProgramRegistry>,
-        Arc<Program>,
-        ProgramId,
-        ResourceAccess,
-        ResourceId,
-        Option<(UserId, UserPassword)>
-    )> {
-        self.used = true;
-
-        Some((
-            self.access_result.take()?,
-            self.program_registry.take()?,
-            self.program.take()?,
-            self.program_id.take()?,
-            self.resource_access.take()?,
-            self.resource_id.take()?,
-            self.user_details.take()
-        ))
+    pub fn resource_id(&self) -> Option<&ResourceId> {
+        self.resource_id.as_ref()
     }
 
     pub fn cast<Y: 'static>(mut self) -> Result<CastedResource<'a, Y>, CastError> {
-        let (
-            access_result,
-            program_registry,
-            program,
-            program_id,
-            resource_access,
-            resource_id,
-            user_details
-        ) = self.take_all().unwrap();
+        let cast_result = self.access_result.take().unwrap().update(|access_result| {
+            access_result.cast::<Y>()
+        });
 
-        let cast_result = access_result.cast::<Y>()?;
+        match cast_result.as_ref().unwrap() {
+            Ok(_) => {},
+            Err(err) => return Err(err.clone()),
+        }
 
-        Ok(CastedResource::new(cast_result, program_registry, program, program_id, resource_access, resource_id, user_details))
+        let cast_result = cast_result.update(|cast_result| cast_result.unwrap());
+
+        Ok(CastedResource::new(
+            cast_result, 
+            self.program_registry.take().unwrap(),
+            self.program.take().unwrap(), 
+            self.program_id.take().unwrap(), 
+            self.resource_access.take().unwrap(), 
+            self.resource_id.take().unwrap(), 
+            self.user_details.take()
+        ))
     }
 }
 
@@ -109,20 +93,16 @@ impl Drop for ResolvedResource<'_> {
             return;
         }
 
-        assert!(
-            matches!(
-                // Safety
-                // We do not use the resources any further (in the drop)
-                unsafe {
-                    self.program_registry.as_ref().unwrap().release_resource(&ProgramRegistryReleaseResource {
-                        program: self.program.as_ref().unwrap(), 
-                        program_id: self.program_id.as_ref().unwrap(),
-                        resource_id: self.resource_id.as_ref().unwrap(), 
-                        resource_access: self.resource_access.as_ref().unwrap()
-                    })
-                },
-                (RegistryReleaseAccessResult::Ok, RegistryReleaseAccessResult::Ok)
-            )
-        );
+        drop(self.access_result.take());
+        drop(self.program.take());
+
+        // Safety
+        // We do not use the resources any further (in the drop)
+        unsafe {
+            self.program_registry.as_ref().unwrap().notify_of_release(&ProgramRegistryReleaseResource {
+                program_id: self.program_id.as_ref().unwrap(),
+                resource_id: self.resource_id.as_ref().unwrap(), 
+            })
+        };
     }
 }

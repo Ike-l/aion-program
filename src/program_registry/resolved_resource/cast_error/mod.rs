@@ -1,6 +1,6 @@
 use crate::prelude::DowncastError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum CastError {
     #[error("Failed to downcast with a Shared AccessResult: {0}")]
     Shared(DowncastError),

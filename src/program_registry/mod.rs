@@ -1,12 +1,12 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{ReceptionGetAccess, Registry, RegistryAcquireAccess, RegistryAcquireAccessError, RegistryReleaseAccess, RegistryReleaseAccessResult, RegistrySaferReplacement, RegistrySaferReplacementResult};
+use aion_state::prelude::{DeaccessingResult, Deaccessor, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryDeaccessingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
+use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
 
 pub mod program_id;
 pub mod stored_program;
@@ -31,7 +31,7 @@ pub type AutoRegistry<ValueId, StoredValue, Access> = Registry<
 pub struct ProgramRegistry {
     program_ids: HashSet<ProgramId>,
     global_program_id: ProgramId,
-    programs: AutoRegistry<ProgramId, StoredProgram, ProgramAccess>,
+    programs: Arc<AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
 
     future_resources: Mutex<RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<RawMutex, (Option<Waker>, bool)>>>>>
 }
@@ -42,7 +42,7 @@ impl Default for ProgramRegistry {
         
         let program_ids = HashSet::from_iter(once(global_program_id.clone()));
 
-        let programs = Registry::default();
+        let programs = Arc::new(AutoRegistry::default());
 
         assert!(matches!(programs.safer_replace(RegistrySaferReplacement {
             user_details: None,
@@ -140,42 +140,14 @@ impl ProgramRegistry {
     /// # Safety
     /// 
     /// Ensure what is being released is actually released
-    pub(crate) unsafe fn release_program(
-        &self,
-        ProgramRegistryReleaseProgram {
-            program_id,
-        }: &ProgramRegistryReleaseProgram
-    ) -> RegistryReleaseAccessResult {
-        trace_function!("ProgramRegistry Release Program");
-
-        unsafe { self.programs.release_access(&RegistryReleaseAccess {
-            resource_id: *program_id,
-            access: &ProgramAccess::Shared(1)
-        }) }
-    }
-
-    /// # Safety
-    /// 
-    /// Ensure what is being released is actually released
-    pub(crate) unsafe fn release_resource(
+    pub(crate) unsafe fn notify_of_release(
         &self,
         ProgramRegistryReleaseResource {
-            program,
             program_id,
             resource_id,
-            resource_access,
         }: &ProgramRegistryReleaseResource<'_>
-    ) -> (RegistryReleaseAccessResult, RegistryReleaseAccessResult) {
+    ) {
         trace_function!("ProgramRegistry Release Resource");
-
-        let resource_result = unsafe { program.release_access(&RegistryReleaseAccess {
-            resource_id,
-            access: resource_access,
-        }) };
-
-        let program_result = unsafe { self.release_program(&ProgramRegistryReleaseProgram { 
-            program_id 
-        }) };
 
         let future_resources = self.future_resources.lock();
         if let Some(waiters) = future_resources.get(&((*program_id).clone(), (*resource_id).clone())) {
@@ -191,8 +163,6 @@ impl ProgramRegistry {
                 }
             }
         } else { event!(FUNCTION_LEVEL, "No Futures waiting on resources") }
-
-        (resource_result, program_result)
     }
 
     pub(crate) fn acquire_program(
@@ -202,13 +172,14 @@ impl ProgramRegistry {
             program_id,
             program_password
         }: ProgramRegistryAcquireProgram
-    ) -> Result<AccessResult<'_, StoredProgram>, RegistryAcquireAccessError>{
+    ) -> Result<DeaccessingResult<AccessResult<'_, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>, RegistryAcquireAccessError>{
         let access = ProgramAccess::Shared(1);
 
         let span = span!(FUNCTION_LEVEL, "ProgramRegistry Acquire Program", access =? access);
         let _enter = span.enter();
 
-        self.programs.acquire_access(RegistryAcquireAccess {
+        
+        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Deaccessor>::acquire_access(&self.programs, RegistryDeaccessingAcquireAccess {
             user_details: user_details,
             resource_id: program_id,
             access,
@@ -237,15 +208,15 @@ impl ProgramRegistry {
         };
 
         match self.acquire_program(ProgramRegistryAcquireProgram { 
-            user_details, 
-            program_id: program_id.clone(), 
+            user_details: user_details.clone(), 
+            program_id: program_id, 
             program_password 
         }) {
             Ok(access_result) => {
                 let program = access_result.as_ref().unwrap();
-                let result = program.safer_replace(
+                let result = program.as_ref().unwrap().safer_replace(
                     RegistrySaferReplacement {
-                        user_details,
+                        user_details: user_details.as_ref().map(|(a, b)| (a, b)),
                         access,
                         resource_id,
                         resource,
@@ -253,7 +224,7 @@ impl ProgramRegistry {
                     }
                 );
 
-                unsafe { self.release_program(&ProgramRegistryReleaseProgram { program_id: &program_id }) };
+                // unsafe { self.release_program(&ProgramRegistryReleaseProgram { program_id: &program_id }) };
 
                 Ok(result)
             },

@@ -1,5 +1,5 @@
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum DowncastError {
     #[error("Failed to Downcast from type: {found}, to {expected}")]
     Downcasting {
