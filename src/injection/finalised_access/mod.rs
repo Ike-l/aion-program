@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{Releaser, RegistryDeaccessingAcquireAccess};
+use aion_state::prelude::{Releaser, RegistryReleasingAcquireAccess};
 use tracing::{Level, event, span};
 
 use crate::prelude::{AccessResult, DerivedError, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
@@ -55,7 +55,7 @@ impl FinalisedAccess {
                 );
                 let _enter = span.enter();
         
-                let resource_access_result = <Program as Releaser>::acquire_access(&program, RegistryDeaccessingAcquireAccess {
+                let resource_access_result = <Program as Releaser>::acquire_access(&program, RegistryReleasingAcquireAccess {
                     user_details: self.user_details.clone(),
                     resource_id: self.resource_id.clone(),
                     access: self.resource_access.clone(),

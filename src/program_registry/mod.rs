@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{ReleasingResult, Releaser, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryDeaccessingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
+use aion_state::prelude::{ReleasingResult, Releaser, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryReleasingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
@@ -179,7 +179,7 @@ impl ProgramRegistry {
         let _enter = span.enter();
 
         
-        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Releaser>::acquire_access(&self.programs, RegistryDeaccessingAcquireAccess {
+        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Releaser>::acquire_access(&self.programs, RegistryReleasingAcquireAccess {
             user_details: user_details,
             resource_id: program_id,
             access,
