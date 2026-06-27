@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aion_state::prelude::DeaccessingResult;
+use aion_state::prelude::ReleasingResult;
 use tracing::{event, span};
 
 use crate::prelude::{AccessResult, AutoRegistry, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramAccess, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, StoredProgram, UserId, UserPassword};
@@ -9,10 +9,10 @@ pub mod casted_resource;
 pub mod cast_error;
 
 pub struct ResolvedResource<'a> {
-    access_result: Option<DeaccessingResult<AccessResult<'a, Resource>, Program>>,
+    access_result: Option<ReleasingResult<AccessResult<'a, Resource>, Program>>,
     
     program_registry: Option<Arc<ProgramRegistry>>,
-    program: Option<DeaccessingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>>,
+    program: Option<ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>>,
     program_id: Option<ProgramId>,
 
     resource_access: Option<ResourceAccess>,
@@ -24,9 +24,9 @@ pub struct ResolvedResource<'a> {
 
 impl<'a> ResolvedResource<'a> {
     pub fn new(
-        access_result: DeaccessingResult<AccessResult<'a, Resource>, Program>,
+        access_result: ReleasingResult<AccessResult<'a, Resource>, Program>,
         program_registry: Arc<ProgramRegistry>,
-        program: DeaccessingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
+        program: ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
         program_id: ProgramId,
         resource_access: ResourceAccess,
         resource_id: ResourceId,

@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{DeaccessingResult, Deaccessor, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryDeaccessingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
+use aion_state::prelude::{ReleasingResult, Releaser, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryDeaccessingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
@@ -172,14 +172,14 @@ impl ProgramRegistry {
             program_id,
             program_password
         }: ProgramRegistryAcquireProgram
-    ) -> Result<DeaccessingResult<AccessResult<'_, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>, RegistryAcquireAccessError>{
+    ) -> Result<ReleasingResult<AccessResult<'_, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>, RegistryAcquireAccessError>{
         let access = ProgramAccess::Shared(1);
 
         let span = span!(FUNCTION_LEVEL, "ProgramRegistry Acquire Program", access =? access);
         let _enter = span.enter();
 
         
-        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Deaccessor>::acquire_access(&self.programs, RegistryDeaccessingAcquireAccess {
+        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Releaser>::acquire_access(&self.programs, RegistryDeaccessingAcquireAccess {
             user_details: user_details,
             resource_id: program_id,
             access,
