@@ -58,4 +58,8 @@ impl<ValueId: Eq + Hash, StoredValue> aion_state::prelude::RegistryStorage for R
 
         self.inner.len()
     }
+
+    fn keys(&self) -> impl Iterator<Item = &Self::ValueId> {
+        self.inner.keys()
+    }
 }

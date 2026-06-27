@@ -18,18 +18,20 @@ pub mod program_registry_result;
 
 pub mod future_resolve;
 
+pub type AutoRegistry<ValueId, StoredValue, Access> = Registry<
+    RegistryStorage<ValueId, StoredValue>,
+    ReservationStorage<ValueId, Access>,
+    AccessStorage<ValueId, Access>,
+    CredentialStorage,
+    WhitelistStorage<ValueId, Access>,
+    BlacklistStorage<ValueId, Access>,
+    ControlStorage<ValueId>
+>;
+
 pub struct ProgramRegistry {
     program_ids: HashSet<ProgramId>,
     global_program_id: ProgramId,
-    programs: Registry<
-        RegistryStorage<ProgramId, StoredProgram>,
-        ReservationStorage<ProgramId, ProgramAccess>,
-        AccessStorage<ProgramId, ProgramAccess>,
-        CredentialStorage,
-        WhitelistStorage<ProgramId, ProgramAccess>,
-        BlacklistStorage<ProgramId, ProgramAccess>,
-        ControlStorage<ProgramId>
-    >,
+    programs: AutoRegistry<ProgramId, StoredProgram, ProgramAccess>,
 
     future_resources: Mutex<RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<RawMutex, (Option<Waker>, bool)>>>>>
 }

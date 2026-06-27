@@ -47,6 +47,7 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
+            AutoRegistry,
             future_resolve::{
                 FutureResolve
             },
