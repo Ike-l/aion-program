@@ -108,7 +108,7 @@ impl Accessor for ResourceAccess {
         event!(Level::TRACE, "Access Release");
 
         match (self, other) {
-            (ResourceAccess::Shared(n), ResourceAccess::Shared(m)) => *n -= m,     
+            (ResourceAccess::Shared(n), ResourceAccess::Shared(m)) => *n = n.saturating_sub(*m),     
             _ => ()
         }  
     }

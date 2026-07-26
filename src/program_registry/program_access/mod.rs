@@ -115,7 +115,7 @@ impl Accessor for ProgramAccess {
         event!(Level::TRACE, "Access Release");
 
         match (self, other) {
-            (ProgramAccess::Shared(n), ProgramAccess::Shared(m)) => *n -= m,     
+            (ProgramAccess::Shared(n), ProgramAccess::Shared(m)) => *n = n.saturating_sub(*m),     
             _ => ()
         }  
     }
