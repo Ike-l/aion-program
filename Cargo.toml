@@ -16,6 +16,7 @@ parking_lot = "0.12.5"
 tokio = { version = "1.52.3", features = ["rt"]}
 anyhow = "1.0.102"
 thiserror = "2.0.18"
+stable_deref_trait = "1.2.1"
 
 [dev-dependencies]
 lazy_static = "1.5.0"

@@ -3,19 +3,19 @@ use std::sync::Arc;
 use aion_state::prelude::ReleasingResult;
 use tracing::{event, span};
 
-use crate::prelude::{AccessResult, AutoRegistry, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramAccess, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Resource, ResourceAccess, ResourceId, StoredProgram, UserId, UserPassword};
+use crate::prelude::{Access, AccessResult, CastError, CastedResource, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Programs, Resource, ResourceId, StoredProgram, UserId, UserPassword};
 
 pub mod casted_resource;
 pub mod cast_error;
 
 pub struct ResolvedResource<'a> {
-    access_result: Option<ReleasingResult<AccessResult<'a, Resource>, Program>>,
+    access_result: Option<ReleasingResult<Resource, AccessResult<'a, Resource>, Program>>,
     
     program_registry: Option<Arc<ProgramRegistry>>,
-    program: Option<ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>>,
+    program: Option<ReleasingResult<StoredProgram, AccessResult<'a, StoredProgram>, Programs>>,
     program_id: Option<ProgramId>,
 
-    resource_access: Option<ResourceAccess>,
+    resource_access: Option<Access>,
     resource_id: Option<ResourceId>,
     user_details: Option<(UserId, UserPassword)>,
 
@@ -24,11 +24,11 @@ pub struct ResolvedResource<'a> {
 
 impl<'a> ResolvedResource<'a> {
     pub fn new(
-        access_result: ReleasingResult<AccessResult<'a, Resource>, Program>,
+        access_result: ReleasingResult<Resource, AccessResult<'a, Resource>, Program>,
         program_registry: Arc<ProgramRegistry>,
-        program: ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
+        program: ReleasingResult<StoredProgram, AccessResult<'a, StoredProgram>, Programs>,
         program_id: ProgramId,
-        resource_access: ResourceAccess,
+        resource_access: Access,
         resource_id: ResourceId,
         user_details: Option<(UserId, UserPassword)>
     ) -> Self {

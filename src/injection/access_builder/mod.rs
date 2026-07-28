@@ -1,4 +1,4 @@
-use crate::prelude::{FinalisedAccess, ProgramId, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
+use crate::prelude::{FinalisedAccess, ProgramId, Access, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
 
 #[derive(Debug, Clone, Default)]
 pub struct AccessBuilder {
@@ -8,7 +8,7 @@ pub struct AccessBuilder {
 
     pub user_details: Option<(UserId, UserPassword)>,
     pub resource_id: Option<ResourceId>, 
-    pub resource_access: Option<ResourceAccess>, 
+    pub resource_access: Option<Access>, 
     pub resource_password: Option<ValuePassword>,   
 }
 

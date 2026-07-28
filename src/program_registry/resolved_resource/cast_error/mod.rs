@@ -6,4 +6,6 @@ pub enum CastError {
     Shared(DowncastError),
     #[error("Failed to downcast with a Unique AccessResult: {0}")]
     Unique(DowncastError),
+    #[error("Failed to downcast with Owned AccessResult: {0}")]
+    Owned(DowncastError),
 }

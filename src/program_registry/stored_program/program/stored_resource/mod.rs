@@ -1,32 +1,35 @@
+use aion_state::prelude::StoredValueTrait;
+use stable_deref_trait::StableDeref;
+
 use crate::prelude::Resource;
 
 pub mod resource;
 
-pub type StoredResource = Box<Resource>;
-
-pub trait StoredResourceTrait {
-    type Resource;
-
-    fn new(resource: Self::Resource) -> Self;
-
-    fn get(&self) -> &Self::Resource;
-
-    fn get_mut(&mut self) -> &mut Self::Resource;
+#[derive(small_derive_deref::Deref)]
+pub struct StoredResource { 
+    resource: Box<Resource>
 }
 
-impl StoredResourceTrait for StoredResource {
-    type Resource = Resource;
+unsafe impl StableDeref for StoredResource {}
 
-    fn new(resource: Self::Resource) -> Self {
-        Box::new(resource)
+impl StoredValueTrait for StoredResource {
+    type Value = Resource;
+
+    fn new(value: Self::Value) -> Self {
+        Self {
+            resource: Box::new(value)
+        }
     }
 
-    fn get(&self) -> &Self::Resource {
-        self
+    fn as_shared(&self) -> &Self::Value {
+        &self.resource
     }
 
-    fn get_mut(&mut self) -> &mut Self::Resource {
-        self
+    fn as_unique(&mut self) -> &mut Self::Value {
+        &mut self.resource
+    }
+
+    fn into_inner(self) -> Self::Value {
+        *self.resource
     }
 }
-

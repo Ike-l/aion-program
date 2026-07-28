@@ -3,7 +3,7 @@ use std::{any::TypeId, ops::{Deref, DerefMut}, sync::Arc};
 use hecs::Entity;
 use tracing::event;
 
-use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedError, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, ResourceAccess, ResourceId, trace_function};
+use crate::prelude::{AccessBuilder, AccessSubmissionError, CastedResource, DerivedError, FUNCTION_LEVEL, FinalisedAccess, Injection, ProgramRegistry, ResolveResourceError, ResolvedResource, Access, ResourceId, trace_function};
 
 pub struct Unique<'a, T> {
     resource: CastedResource<'a, T>
@@ -53,7 +53,7 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
             return Ok(vec![
                 AccessBuilder {
                     resource_id: Some(ResourceId::TypeId(TypeId::of::<T>())),
-                    resource_access: Some(ResourceAccess::Unique),
+                    resource_access: Some(Access::Unique),
                     ..Default::default()
                 }.build().unwrap()
             ])
@@ -62,7 +62,7 @@ impl<'a, T: 'static> Injection for Unique<'a, T> {
         event!(FUNCTION_LEVEL, "Using access builder at index 0");
 
         let mut access_builder = prompted_accesses.remove(0);
-        access_builder.resource_access.replace(ResourceAccess::Unique);
+        access_builder.resource_access.replace(Access::Unique);
         if access_builder.resource_id.is_none() {
             access_builder.resource_id.replace(ResourceId::TypeId(TypeId::of::<T>()));
         }

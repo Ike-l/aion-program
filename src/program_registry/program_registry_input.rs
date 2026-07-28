@@ -1,4 +1,4 @@
-use crate::prelude::{ProgramId, Resource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword};
+use crate::prelude::{ProgramId, Resource, Access, ResourceId, UserId, UserPassword, ValuePassword};
 
 pub struct ProgramRegistryReleaseProgram<'a> {
     pub program_id: &'a ProgramId,
@@ -15,7 +15,7 @@ pub struct ProgramRegistryReplaceResource<'a> {
     pub program_password: Option<ValuePassword>,
 
     pub resource: Option<Resource>,
-    pub access: &'a ResourceAccess,
+    pub access: &'a Access,
     pub resource_id: ResourceId,
     pub resource_password: Option<&'a ValuePassword>
 }

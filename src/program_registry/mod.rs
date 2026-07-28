@@ -1,16 +1,15 @@
 use std::{collections::{HashMap, HashSet}, iter::once, sync::Arc, task::Waker};
 
-use aion_state::prelude::{ReleasingResult, Releaser, ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryReleasingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult};
+use aion_state::prelude::{ReceptionGetAccess, Registry, RegistryAcquireAccessError, RegistryReleasingAcquireAccess, RegistrySaferReplacement, RegistrySaferReplacementResult, Releaser, ReleasingResult};
 use hecs::Entity;
 use parking_lot::{RawMutex, lock_api::Mutex};
 use tokio::runtime::Runtime;
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramAccess, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, ResourceAccess, ResourceId, StoredProgram, StoredResource, WhitelistStorage, trace_function};
+use crate::prelude::{Access, AccessBuilder, AccessResult, AccessStorage, BlacklistStorage, ControlStorage, CredentialStorage, FUNCTION_LEVEL, FutureResolve, Injection, ProgramId, ProgramRegistryAcquireProgram, ProgramRegistryReleaseResource, ProgramRegistryReplaceResource, ProgramRegistryResolveAsyncError, ProgramRegistryResolveAsyncWithInsertError, ProgramRegistryResolveEitherError, ProgramRegistryResolveError, ProgramRegistryResolveWithInsert, ProgramRegistryResolveWithInsertEitherError, ProgramRegistryResolveWithInsertError, RegistryStorage, ReservationStorage, ResolveResourceError, Resource, ResourceId, StoredProgram, WhitelistStorage, trace_function};
 
 pub mod program_id;
 pub mod stored_program;
-pub mod program_access;
 pub mod resolved_resource;
 pub mod derived_error;
 pub mod program_registry_input;
@@ -28,10 +27,12 @@ pub type AutoRegistry<ValueId, StoredValue, Access> = Registry<
     ControlStorage<ValueId>
 >;
 
+pub type Programs = AutoRegistry<ProgramId, StoredProgram, Access>;
+
 pub struct ProgramRegistry {
     program_ids: HashSet<ProgramId>,
     global_program_id: ProgramId,
-    programs: Arc<AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
+    programs: Arc<Programs>,
 
     future_resources: Mutex<RawMutex, HashMap<(ProgramId, ResourceId), Vec<Arc<Mutex<RawMutex, (Option<Waker>, bool)>>>>>
 }
@@ -46,7 +47,7 @@ impl Default for ProgramRegistry {
 
         assert!(matches!(programs.safer_replace(RegistrySaferReplacement {
             user_details: None,
-            access: &ProgramAccess::Replace,
+            access: &Access::Replace,
             resource_id: global_program_id.clone(),
             resource: Some(StoredProgram::default()),
             password: None,
@@ -172,14 +173,14 @@ impl ProgramRegistry {
             program_id,
             program_password
         }: ProgramRegistryAcquireProgram
-    ) -> Result<ReleasingResult<AccessResult<'_, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>, RegistryAcquireAccessError>{
-        let access = ProgramAccess::Shared(1);
+    ) -> Result<ReleasingResult<StoredProgram, AccessResult<'_, StoredProgram>, Programs>, RegistryAcquireAccessError>{
+        let access = Access::Shared(1);
 
         let span = span!(FUNCTION_LEVEL, "ProgramRegistry Acquire Program", access =? access);
         let _enter = span.enter();
 
         
-        <AutoRegistry<ProgramId, StoredProgram, ProgramAccess> as Releaser>::acquire_access(&self.programs, RegistryReleasingAcquireAccess {
+        <Programs as Releaser<StoredProgram>>::acquire_access(&self.programs, RegistryReleasingAcquireAccess {
             user_details: user_details,
             resource_id: program_id,
             access,
@@ -199,7 +200,7 @@ impl ProgramRegistry {
             resource_id,
             resource_password,
         }: ProgramRegistryReplaceResource<'a>
-    ) -> Result<RegistrySaferReplacementResult<StoredResource>, RegistryAcquireAccessError> {
+    ) -> Result<RegistrySaferReplacementResult<Resource>, RegistryAcquireAccessError> {
         trace_function!("ProgramRegistry ReplaceResource");
 
         let program_id = match program_id {
@@ -296,7 +297,7 @@ impl ProgramRegistry {
                             program_id, 
                             program_password, 
                             resource: Some(resource), 
-                            access: &ResourceAccess::Replace, 
+                            access: &Access::Replace, 
                             resource_id, 
                             resource_password
                         });
@@ -356,7 +357,7 @@ impl ProgramRegistry {
                 let resource_id = resource_id.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResourceId)?;
                 let resource = resource.ok_or(ProgramRegistryResolveAsyncWithInsertError::ExpectedResource)?();
 
-                let access = ResourceAccess::Replace;
+                let access = Access::Replace;
 
                 let span = span!(FUNCTION_LEVEL, "Got Future Resolve", access =? access);
                 let _enter = span.enter();
@@ -482,7 +483,7 @@ impl ProgramRegistry {
         &self.global_program_id
     }
 
-    pub fn get_program_access(&self, program_id: Option<&ProgramId>) -> Option<ProgramAccess> {
+    pub fn get_program_access(&self, program_id: Option<&ProgramId>) -> Option<Access> {
         let program_id = match program_id {
             Some(program_id) => program_id,
             None => &self.global_program_id,

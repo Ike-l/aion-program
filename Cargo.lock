@@ -22,6 +22,7 @@ dependencies = [
  "parking_lot",
  "rand",
  "small_derive_deref",
+ "stable_deref_trait",
  "thiserror",
  "tokio",
  "tracing",
@@ -33,6 +34,8 @@ name = "aion-state"
 version = "0.1.0"
 dependencies = [
  "parking_lot",
+ "rand",
+ "stable_deref_trait",
  "thiserror",
  "tracing",
 ]
@@ -425,6 +428,12 @@ name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "syn"

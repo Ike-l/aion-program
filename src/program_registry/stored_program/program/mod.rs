@@ -1,7 +1,6 @@
-use crate::prelude::{AutoRegistry, ResourceId, StoredResource, ResourceAccess};
+use crate::prelude::{AutoRegistry, ResourceId, StoredResource, Access};
 
 pub mod resource_id;
 pub mod stored_resource;
-pub mod resource_access;
 
-pub type Program = AutoRegistry<ResourceId, StoredResource, ResourceAccess>;
+pub type Program = AutoRegistry<ResourceId, StoredResource, Access>;

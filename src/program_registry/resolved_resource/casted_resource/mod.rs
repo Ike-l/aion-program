@@ -3,27 +3,27 @@ use std::sync::Arc;
 use tracing::span;
 
 use aion_state::prelude::ReleasingResult;
-use crate::prelude::{AccessResult, AutoRegistry, FUNCTION_LEVEL, Program, ProgramAccess, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, ResourceAccess, ResourceId, StoredProgram, UserId, UserPassword};
+use crate::prelude::{Access, AccessResult, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryReleaseResource, Programs, Resource, ResourceId, StoredProgram, UserId, UserPassword};
 
 pub struct CastedResource<'a, T> {
-    access_result: Option<ReleasingResult<AccessResult<'a, T>, Program>>,
+    access_result: Option<ReleasingResult<Resource, AccessResult<'a, T>, Program>>,
     
     program_registry: Arc<ProgramRegistry>,
-    program: Option<ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>>,
+    program: Option<ReleasingResult<StoredProgram, AccessResult<'a, StoredProgram>, Programs>>,
     program_id: ProgramId,
 
-    resource_access: ResourceAccess,
+    resource_access: Access,
     resource_id: ResourceId,
     user_details: Option<(UserId, UserPassword)>
 }
 
 impl<'a, T> CastedResource<'a, T> {
     pub fn new(
-        access_result: ReleasingResult<AccessResult<'a, T>, Program>,
+        access_result: ReleasingResult<Resource, AccessResult<'a, T>, Program>,
         program_registry: Arc<ProgramRegistry>,
-        program: ReleasingResult<AccessResult<'a, StoredProgram>, AutoRegistry<ProgramId, StoredProgram, ProgramAccess>>,
+        program: ReleasingResult<StoredProgram, AccessResult<'a, StoredProgram>, Programs>,
         program_id: ProgramId,
-        resource_access: ResourceAccess,
+        resource_access: Access,
         resource_id: ResourceId,
         user_details: Option<(UserId, UserPassword)>
     ) -> Self {

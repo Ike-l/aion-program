@@ -3,7 +3,7 @@ use std::sync::Arc;
 use aion_state::prelude::{Releaser, RegistryReleasingAcquireAccess};
 use tracing::{Level, event, span};
 
-use crate::prelude::{AccessResult, DerivedError, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ResolvedResource, ResourceAccess, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
+use crate::prelude::{Access, AccessResult, DerivedError, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ResolvedResource, Resource, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
 
 #[derive(Clone)]
 pub struct FinalisedAccess {
@@ -13,7 +13,7 @@ pub struct FinalisedAccess {
     pub user_details: Option<(UserId, UserPassword)>,
 
     pub resource_id: ResourceId,
-    pub resource_access: ResourceAccess,
+    pub resource_access: Access,
     pub resource_password: Option<ValuePassword>,
 }
 
@@ -55,7 +55,7 @@ impl FinalisedAccess {
                 );
                 let _enter = span.enter();
         
-                let resource_access_result = <Program as Releaser>::acquire_access(&program, RegistryReleasingAcquireAccess {
+                let resource_access_result = <Program as Releaser<Resource>>::acquire_access(&program, RegistryReleasingAcquireAccess {
                     user_details: self.user_details.clone(),
                     resource_id: self.resource_id.clone(),
                     access: self.resource_access.clone(),

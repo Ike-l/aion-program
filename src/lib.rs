@@ -5,6 +5,7 @@
 pub mod injection;
 pub mod program_registry;
 pub mod registry_implementation;
+pub mod access;
 
 pub mod prelude {
     pub(crate) const FUNCTION_LEVEL: tracing::Level = tracing::Level::DEBUG;
@@ -19,6 +20,9 @@ pub mod prelude {
     pub(crate) use trace_function;
 
     pub use super::{
+        access::{
+            Access
+        },
         injection::{
             Injection,
             access_builder::{
@@ -47,6 +51,7 @@ pub mod prelude {
         },
         program_registry::{
             ProgramRegistry,
+            Programs,
             AutoRegistry,
             future_resolve::{
                 FutureResolve
@@ -82,25 +87,18 @@ pub mod prelude {
             program_id::{
                 ProgramId
             },
-            program_access::{
-                ProgramAccess
-            },
             stored_program::{
                 StoredProgram,
-                StoredProgramTrait,
                 program::{
                     Program,
-                    resource_access::{
-                        ResourceAccess
-                    },
                     resource_id::{
                         ResourceId
                     },
                     stored_resource::{
                         StoredResource,
-                        StoredResourceTrait,
                         resource::{
                             Resource,
+                            ValueTrait,
                             downcast_error::{
                                 DowncastError
                             }
