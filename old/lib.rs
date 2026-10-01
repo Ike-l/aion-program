@@ -1,0 +1,153 @@
+#![allow(clippy::match_like_matches_macro)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::single_match)]
+
+pub mod injection;
+pub mod program_registry;
+pub mod registry_implementation;
+pub mod access;
+
+pub mod prelude {
+    pub(crate) const FUNCTION_LEVEL: tracing::Level = tracing::Level::DEBUG;
+
+    macro_rules! trace_function {
+        ($log:literal) => {
+            let span = tracing::span!(crate::prelude::FUNCTION_LEVEL, $log);
+            let _enter = span.enter();
+        };
+    }
+
+    pub(crate) use trace_function;
+
+    pub use super::{
+        access::{
+            Access
+        },
+        injection::{
+            Injection,
+            access_builder::{
+                AccessBuilder,
+            },
+            finalised_access::{
+                FinalisedAccess
+            },
+            resolve_resource_error::{
+                ResolveResourceError
+            },
+            access_submission_error::{
+                AccessSubmissionError
+            },
+            primitives::{
+                owned::{
+                    Owned
+                },
+                shared::{
+                    Shared
+                },
+                unique::{
+                    Unique
+                }
+            }
+        },
+        program_registry::{
+            ProgramRegistry,
+            Programs,
+            AutoRegistry,
+            future_resolve::{
+                FutureResolve
+            },
+            program_registry_input::{
+                ProgramRegistryReleaseProgram,
+                ProgramRegistryReplaceResource,
+                ProgramRegistryResolveWithInsert,
+                ProgramRegistryAcquireProgram,
+                ProgramRegistryReleaseResource
+            },
+            program_registry_result::{
+                ProgramRegistryReplaceResourceError,
+                ProgramRegistryResolveWithInsertError,
+                ProgramRegistryResolveError,
+                ProgramRegistryResolveAsyncError,
+                ProgramRegistryResolveAsyncWithInsertError,
+                ProgramRegistryResolveEitherError,
+                ProgramRegistryResolveWithInsertEitherError,
+            },
+            derived_error::{
+                DerivedError
+            },
+            resolved_resource::{
+                ResolvedResource,
+                casted_resource::{
+                    CastedResource
+                },
+                cast_error::{
+                    CastError
+                }
+            },
+            program_id::{
+                ProgramId
+            },
+            stored_program::{
+                StoredProgram,
+                program::{
+                    Program,
+                    resource_id::{
+                        ResourceId
+                    },
+                    stored_resource::{
+                        StoredResource,
+                        resource::{
+                            Resource,
+                            ValueTrait,
+                            downcast_error::{
+                                DowncastError
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        registry_implementation::{
+            storages::{
+                access_storage::{
+                    AccessStorage,
+                },
+                blacklist_storage::{
+                    BlacklistStorage,
+                },
+                control_storage::{
+                    ControlStorage
+                },
+                credential_storage::{
+                    CredentialStorage
+                },
+                registry_storage::{
+                    RegistryStorage
+                },
+                reserver_storage::{
+                    ReservationStorage
+                },
+                whitelist_storage::{
+                    WhitelistStorage
+                }
+            },
+            primitives::{
+                value_password::{
+                    ValuePassword
+                },
+                user_id::{
+                    UserId
+                },
+                user_password::{
+                    UserPassword
+                },
+                access_result::{
+                    AccessResult
+                },
+                borrow_type::{
+                    BorrowType
+                }
+            }
+        }
+    };
+}

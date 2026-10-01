@@ -2,7 +2,7 @@ use tracing::{Level, event};
 
 use crate::prelude::BorrowType;
 
-use aion_state::prelude::Accessor;
+use aion_state::prelude::{Accessor, AccessorResult, StoredValueTrait};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Access {
@@ -94,17 +94,17 @@ impl Accessor for Access {
         }  
     }
     
-    fn acquire<'a, V: aion_state::prelude::StoredValueTrait, R: aion_state::prelude::AccessorResult<'a, V::Value>>(
+    fn acquire<'a, V: StoredValueTrait, R: AccessorResult<'a, V::Value>>(
         &self, 
         stored_value: &'a mut V
-    ) -> R {
+    ) -> Option<R> {
         event!(Level::TRACE, "Access Acquire");
-        
+
         match self {
-            Access::Shared(0) => unreachable!(),
-            Access::Shared(_) => R::new_shared(stored_value.as_shared()),
-            Access::Unique => R::new_unique(stored_value.as_unique()),
-            Access::Replace => unreachable!(),
+            Access::Shared(0) => None,
+            Access::Shared(_) => Some(R::new_shared(stored_value.as_shared())),
+            Access::Unique => Some(R::new_unique(stored_value.as_unique())),
+            Access::Replace => None,
         }
     }
 }

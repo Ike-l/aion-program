@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aion_state::prelude::{Releaser, RegistryReleasingAcquireAccess};
+use aion_state::prelude::Releaser;
 use tracing::{Level, event, span};
 
 use crate::prelude::{Access, AccessResult, DerivedError, FUNCTION_LEVEL, Program, ProgramId, ProgramRegistry, ProgramRegistryAcquireProgram, ResolvedResource, Resource, ResourceId, UserId, UserPassword, ValuePassword, trace_function};
